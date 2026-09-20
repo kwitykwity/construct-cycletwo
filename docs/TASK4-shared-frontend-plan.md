@@ -11,6 +11,7 @@
 **PRD 11.9:** First name + last initial (e.g., "Rob W")
 
 **Existing Pattern Found:**
+
 - `packages/excalidraw/clients.ts` has `getNameInitial(name)` - returns first character uppercase
 - Handles Unicode surrogate pairs correctly
 
@@ -33,16 +34,15 @@ export function formatDisplayName(firstName: string, lastName: string): string {
 export function formatDisplayNameWithCollision(
   firstName: string,
   lastName: string,
-  existingNames: string[]
+  existingNames: string[],
 ): string {
   const base = formatDisplayName(firstName, lastName);
   if (!existingNames.includes(base)) {
     return base;
   }
   // Add second character of last name
-  const extended = lastName.length > 1
-    ? `${firstName} ${lastName.substring(0, 2)}`
-    : base;
+  const extended =
+    lastName.length > 1 ? `${firstName} ${lastName.substring(0, 2)}` : base;
   return extended;
 }
 ```
@@ -54,12 +54,14 @@ export function formatDisplayNameWithCollision(
 ## 2. Date/Time Formatter
 
 **PRD Requirements:**
+
 - History/Personal/Team Notes: `M/D/YYYY` (e.g., "9/18/2026")
 - Authorship hover: `M/D/YY` (e.g., "9/18/26")
 - Time: `h:mmam/pm` (e.g., "11:42am")
 - Timezone: viewer-local browser timezone
 
 **Existing Pattern Found:**
+
 - `packages/common/src/utils.ts` has `getDateTime()` - but uses `YYYY-MM-DD-HHMM` format
 - `ChatMessage.tsx` uses `toLocaleTimeString()` with options
 
@@ -102,7 +104,7 @@ export function formatTime(date: Date): string {
 export function formatAuthorship(
   firstName: string,
   lastName: string,
-  createdAt: Date
+  createdAt: Date,
 ): string {
   const name = formatDisplayName(firstName, lastName);
   const time = formatTime(createdAt);
@@ -118,6 +120,7 @@ export function formatAuthorship(
 ## 3. Floating Window Pattern
 
 **PRD Requirements:**
+
 - Used for: History Panel, Personal Notes, Team Notes
 - Movable within viewport
 - Resizable (within limits)
@@ -127,7 +130,7 @@ export function formatAuthorship(
 **Existing Patterns Found:**
 
 | Component | File | Features |
-|-----------|------|----------|
+| --- | --- | --- |
 | `Modal` | `packages/excalidraw/components/Modal.tsx` | Portal, ESC close, overlay |
 | `Dialog` | `packages/excalidraw/components/Dialog.tsx` | Size presets, focus trap, close button |
 | `Popover` | `packages/excalidraw/components/Popover.tsx` | Viewport-aware positioning |
@@ -156,6 +159,7 @@ interface FloatingWindowProps {
 ```
 
 **Implementation Approach:**
+
 1. Use React Portal (like Modal.tsx)
 2. Track position/size in local state
 3. Drag via mousedown/mousemove on title bar
@@ -164,28 +168,26 @@ interface FloatingWindowProps {
 6. Store position in localStorage per window ID
 
 **Files to Create:**
+
 - `excalidraw-app/components/FloatingWindow/FloatingWindow.tsx`
 - `excalidraw-app/components/FloatingWindow/FloatingWindow.scss`
 - `excalidraw-app/components/FloatingWindow/index.ts`
 
-**Default Geometries (per PRD):**
-| Window | Width | Height | Position |
-|--------|-------|--------|----------|
-| History Panel | 300px | 400px | Right side |
-| Personal Notes | 350px | 450px | Center-right |
-| Team Notes | 400px | 500px | Center |
+**Default Geometries (per PRD):** | Window | Width | Height | Position | |--------|-------|--------|----------| | History Panel | 300px | 400px | Right side | | Personal Notes | 350px | 450px | Center-right | | Team Notes | 400px | 500px | Center |
 
 ---
 
 ## 4. Note Editor Component
 
 **PRD Requirements (7.5, 8.4):**
+
 - Multiline text input
 - Bold formatting only (no italic, underline, etc.)
 - Text sizes: S (12px), M (14px default), L (18px), XL (24px)
 - No other rich-text features
 
 **Existing Patterns Found:**
+
 - `CodeMirrorEditor.tsx` - Full CodeMirror, too heavy for notes
 - `ProjectName.tsx` - Simple single-line input
 - Chat textarea - Basic multiline, no formatting
@@ -213,22 +215,25 @@ interface NoteEditorToolbarProps {
 ```
 
 **Font Size Mapping:**
+
 ```typescript
 const FONT_SIZES = {
   S: 12,
-  M: 14,  // default
+  M: 14, // default
   L: 18,
   XL: 24,
 } as const;
 ```
 
 **Implementation Notes:**
+
 - Use `contenteditable` with `execCommand("bold")` for bold toggle
 - Store content as HTML string (limited: only `<b>` tags allowed)
 - Sanitize on paste to strip disallowed formatting
 - Keyboard shortcut: Ctrl/Cmd+B for bold
 
 **Files to Create:**
+
 - `excalidraw-app/components/NoteEditor/NoteEditor.tsx`
 - `excalidraw-app/components/NoteEditor/NoteEditorToolbar.tsx`
 - `excalidraw-app/components/NoteEditor/NoteEditor.scss`
@@ -241,7 +246,7 @@ const FONT_SIZES = {
 **Existing Patterns Found:**
 
 | Pattern | Component | Usage |
-|---------|-----------|-------|
+| --- | --- | --- |
 | Spinner | `Spinner.tsx` | SVG animated spinner, configurable size |
 | Loading Message | `LoadingMessage.tsx` | Spinner + text with delay |
 | Button Loading | `FilledButton.tsx` | `status="loading"` shows spinner |
@@ -288,6 +293,7 @@ export const EmptyState: React.FC<{
 ```
 
 **Files to Create:**
+
 - `excalidraw-app/components/states/LoadingState.tsx`
 - `excalidraw-app/components/states/ErrorState.tsx`
 - `excalidraw-app/components/states/EmptyState.tsx`
@@ -334,12 +340,14 @@ excalidraw-app/
 ## Dependencies
 
 **Unlocks:**
+
 - Personal Notes UI (uses FloatingWindow, NoteEditor, formatters)
 - Team Notes UI (uses FloatingWindow, NoteEditor, formatters)
 - History Panel (uses FloatingWindow, formatters, LoadingState)
 - Element Authorship hover (uses formatAuthorship)
 
 **Blocked Until:**
+
 - Supabase migrations run (for testing with real data)
 
 ---

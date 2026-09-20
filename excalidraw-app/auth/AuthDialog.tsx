@@ -248,8 +248,8 @@ export const AuthDialog = () => {
           {isSubmitting
             ? "Please wait..."
             : mode === "signIn"
-              ? "Sign In"
-              : "Create Account"}
+            ? "Sign In"
+            : "Create Account"}
         </button>
 
         <div className="auth-dialog__toggle">

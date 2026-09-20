@@ -255,32 +255,38 @@
 
 ## Integration & Demo Tasks
 
-### Task: Shared Frontend Infrastructure ✅ PLAN COMPLETE
+### Task: Shared Frontend Infrastructure ✅ IMPLEMENTATION COMPLETE
 
 **PRD Sections:** 11.8-11.16, 16.5
 
-**Status:** Plan documented in `docs/TASK4-shared-frontend-plan.md`
+**Status:** All components implemented
 
-**Identified Components:**
+**Plan:** `docs/TASK4-shared-frontend-plan.md`
 
-| Component | Location | Purpose |
-|-----------|----------|---------|
-| `formatters.ts` | `excalidraw-app/utils/` | Display name, date/time formatting |
-| `FloatingWindow/` | `excalidraw-app/components/` | Movable/resizable window for panels |
-| `NoteEditor/` | `excalidraw-app/components/` | Multiline editor with bold + 4 sizes |
-| `states/` | `excalidraw-app/components/` | Loading, Error, Empty state components |
+**Implemented Components:**
+
+| Component | Location | Status |
+| --- | --- | --- |
+| `formatters.ts` | `excalidraw-app/utils/` | ✅ Complete |
+| `states/` | `excalidraw-app/components/` | ✅ Complete |
+| `FloatingWindow/` | `excalidraw-app/components/` | ✅ Complete |
+| `NoteEditor/` | `excalidraw-app/components/` | ✅ Complete |
+
+**Features Delivered:**
+
+- ✅ `formatters.ts` - Display name (FirstName L), date/time formatting per PRD 11.9-11.16
+- ✅ `states/` - LoadingState, ErrorState (with retry cooldown), EmptyState
+- ✅ `FloatingWindow/` - Draggable, resizable window with localStorage persistence
+- ✅ `NoteEditor/` - Contenteditable with bold-only formatting, S/M/L/XL font sizes
 
 **Verified:**
+
 - ✅ Fits existing Excalidraw structure (uses same patterns)
 - ✅ No unnecessary restructuring (new files only)
 - ✅ No extra rich-text features (bold only, 4 sizes only)
 - ✅ Reuses existing components (Spinner, Portal hooks)
-
-**Implementation Order:**
-1. formatters.ts (no dependencies)
-2. states/ (reuse Spinner)
-3. FloatingWindow/ (standalone)
-4. NoteEditor/ (can parallel with FloatingWindow)
+- ✅ TypeScript compiles with no errors
+- ✅ ESLint passes with no errors
 
 ---
 
@@ -303,9 +309,9 @@
 2. ✅ Task 2: Inspect integration points
 3. ✅ Implement roomId-to-board_id mapping (Rob's branch merged)
 4. ✅ Redesign database migration and RLS (migrations 001-003 drafted)
-5. ⬜ **BLOCKED:** Run migrations on Supabase (waiting for collaborator access)
+5. ⬜ **BLOCKED:** Run migrations on Supabase (pending consolidated engineering review - see Migration Files)
 6. ✅ Implement Auth Provider & Session Management (frontend complete)
-7. ⬜ Establish shared frontend infrastructure
+7. ✅ Establish shared frontend infrastructure (Task 4 complete)
 8. ⬜ Implement feature work (can parallelize after foundation)
 9. ⬜ Verify each feature and security boundary
 10. ⬜ Integrated regression testing
@@ -318,10 +324,10 @@
 | File | Status | Purpose |
 | --- | --- | --- |
 | `001_initial_schema.sql` | Ready | profiles, boards, board_memberships, resolve_board() |
-| `002_rls_policies.sql` | Ready | RLS policies for foundation tables, profile trigger, is_board_member() |
-| `003_feature_tables.sql` | Ready | element_authorship, history_events, personal_notes, team_notes, team_note_viewers + RLS |
+| `002_rls_policies.sql` | **Blocked** | RLS policies for foundation tables, profile trigger, is_board_member() |
+| `003_feature_tables.sql` | **Blocked** | element_authorship, history_events, personal_notes, team_notes, team_note_viewers + RLS |
 
-**Blocked:** Waiting for Supabase collaborator access to run migrations.
+**Blocked:** `002_rls_policies.sql` and `003_feature_tables.sql` held pending consolidated engineering review. Engineering review on 9/20 identified RLS/security issues that must be resolved before execution. Do not run or edit either migration until the consolidated review is complete.
 
 ---
 
