@@ -10,25 +10,39 @@
 
 ---
 
-## Task 2 - Inspect Supabase Auth Integration Points ✅ COMPLETE
+## Task 2 - Supabase Auth Integration ✅ IMPLEMENTATION COMPLETE
 
 **PRD Sections:** 3.3, 4.1-4.9, 10.12, 11.2
 
-**Status:** Complete - Analysis documented in `docs/TASK2-supabase-auth-integration-analysis.md`
+**Status:** Implementation complete / Two-account integration verification pending
 
-**Summary:**
+**Documentation:** `docs/TASK2-supabase-auth-integration-analysis.md`
 
-- Identified session establishment/restoration points
-- Identified sign-in/account creation integration points
-- Confirmed profile data: first_name, last_name
-- Confirmed UUID for ownership/actor fields
-- Verified Excalidraw collaborator identity ≠ security identity
+**Completed:**
+
+- ✅ Identified session establishment/restoration points
+- ✅ Identified sign-in/account creation integration points
+- ✅ Confirmed profile data: first_name, last_name
+- ✅ Confirmed UUID for ownership/actor fields
+- ✅ Verified Excalidraw collaborator identity ≠ security identity
+- ✅ Auth Provider implemented and tested in browser
+- ✅ Sign-in/Sign-up/Sign-out working
+
+**Pending Verification:**
+
+- ⏳ Two-account integration test (two real accounts on same board)
+- ⏳ Verify UUID identity separation works for:
+  - Board membership
+  - RLS policies
+  - Element Authorship
+  - Personal Notes privacy
+  - Team Notes visibility
 
 **Unlocks:**
 
 - Profile/membership implementation
 - Authenticated feature data access
-- Prepared two-account demo setup
+- Two-account demo setup
 
 ---
 
@@ -241,16 +255,32 @@
 
 ## Integration & Demo Tasks
 
-### Task: Shared Frontend Infrastructure ⬜ TODO
+### Task: Shared Frontend Infrastructure ✅ PLAN COMPLETE
 
 **PRD Sections:** 11.8-11.16, 16.5
 
-**Required:**
+**Status:** Plan documented in `docs/TASK4-shared-frontend-plan.md`
 
-- Display name formatter (first + last initial, collision handling)
-- Date/time formatter (M/D/YYYY for notes, M/D/YY for authorship hover, h:mmam/pm)
-- Floating window component (movable, resizable, X close, default geometry)
-- Note editor component (multiline, bold, 4 text sizes)
+**Identified Components:**
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `formatters.ts` | `excalidraw-app/utils/` | Display name, date/time formatting |
+| `FloatingWindow/` | `excalidraw-app/components/` | Movable/resizable window for panels |
+| `NoteEditor/` | `excalidraw-app/components/` | Multiline editor with bold + 4 sizes |
+| `states/` | `excalidraw-app/components/` | Loading, Error, Empty state components |
+
+**Verified:**
+- ✅ Fits existing Excalidraw structure (uses same patterns)
+- ✅ No unnecessary restructuring (new files only)
+- ✅ No extra rich-text features (bold only, 4 sizes only)
+- ✅ Reuses existing components (Spinner, Portal hooks)
+
+**Implementation Order:**
+1. formatters.ts (no dependencies)
+2. states/ (reuse Spinner)
+3. FloatingWindow/ (standalone)
+4. NoteEditor/ (can parallel with FloatingWindow)
 
 ---
 
