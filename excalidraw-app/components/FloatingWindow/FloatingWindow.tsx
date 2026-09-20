@@ -20,7 +20,7 @@ export interface FloatingWindowProps {
   children: React.ReactNode;
   /** Called when close button is clicked */
   onClose: () => void;
-  /** Unique ID for localStorage persistence */
+  /** Unique ID for accessibility labeling */
   windowId?: string;
 
   /** Initial position (default: centered) */
@@ -62,20 +62,7 @@ export const FloatingWindow: React.FC<FloatingWindowProps> = ({
 }) => {
   const windowRef = useRef<HTMLDivElement>(null);
   const [position, setPosition] = useState<Position>(() => {
-    // Try to load from localStorage
-    if (windowId) {
-      const saved = localStorage.getItem(
-        `floating-window-${windowId}-position`,
-      );
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // Ignore parse errors
-        }
-      }
-    }
-    // Default to centered or provided position
+    // Use provided position or center in viewport
     if (defaultPosition) {
       return defaultPosition;
     }
@@ -91,20 +78,7 @@ export const FloatingWindow: React.FC<FloatingWindowProps> = ({
     };
   });
 
-  const [size, setSize] = useState<Size>(() => {
-    // Try to load from localStorage
-    if (windowId) {
-      const saved = localStorage.getItem(`floating-window-${windowId}-size`);
-      if (saved) {
-        try {
-          return JSON.parse(saved);
-        } catch {
-          // Ignore parse errors
-        }
-      }
-    }
-    return defaultSize;
-  });
+  const [size, setSize] = useState<Size>(() => defaultSize);
 
   const [isDragging, setIsDragging] = useState(false);
   const [isResizing, setIsResizing] = useState(false);
@@ -120,26 +94,6 @@ export const FloatingWindow: React.FC<FloatingWindowProps> = ({
     width: 0,
     height: 0,
   });
-
-  // Save position to localStorage
-  useEffect(() => {
-    if (windowId && !isDragging) {
-      localStorage.setItem(
-        `floating-window-${windowId}-position`,
-        JSON.stringify(position),
-      );
-    }
-  }, [windowId, position, isDragging]);
-
-  // Save size to localStorage
-  useEffect(() => {
-    if (windowId && !isResizing) {
-      localStorage.setItem(
-        `floating-window-${windowId}-size`,
-        JSON.stringify(size),
-      );
-    }
-  }, [windowId, size, isResizing]);
 
   // Constrain position to viewport
   const constrainPosition = useCallback(
