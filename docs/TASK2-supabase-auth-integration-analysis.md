@@ -1,8 +1,6 @@
 # TASK 2: Supabase Auth Integration Points & Profile Requirements Analysis
 
-**Date:** September 19, 2026
-**PRD Sections:** 3.3, 4.1-4.9, 10.12, 11.2
-**Status:** Complete
+**Date:** September 19, 2026 **PRD Sections:** 3.3, 4.1-4.9, 10.12, 11.2 **Status:** Complete
 
 ---
 
@@ -17,7 +15,7 @@ The existing Excalidraw application has **NO Supabase integration** - it current
 ### Recommended Integration Points
 
 | Location | File | Purpose |
-|----------|------|---------|
+| --- | --- | --- |
 | **App Entry Point** | `excalidraw-app/index.tsx:13-17` | Initialize Supabase client and wrap app with auth provider |
 | **App Component** | `excalidraw-app/App.tsx:375` (ExcalidrawWrapper) | Check/restore session before initializing scene |
 | **Scene Initialization** | `excalidraw-app/App.tsx:217-373` (initializeScene) | Gate collaboration features on auth state |
@@ -37,7 +35,9 @@ Per PRD 4.4: "Use the Supabase Auth session. A valid session allows reopen/refre
 ```typescript
 // Proposed new atom (similar to existing pattern in Collab.tsx:99-101)
 export const supabaseUserAtom = atom<User | null>(null);
-export const isAuthenticatedAtom = atom((get) => get(supabaseUserAtom) !== null);
+export const isAuthenticatedAtom = atom(
+  (get) => get(supabaseUserAtom) !== null,
+);
 ```
 
 ---
@@ -79,7 +79,7 @@ export const isAuthenticatedAtom = atom((get) => get(supabaseUserAtom) !== null)
 Per **PRD 4.3** and **PRD 9.2**:
 
 | Field | Type | Purpose | PRD Reference |
-|-------|------|---------|---------------|
+| --- | --- | --- | --- |
 | `user_id` | UUID (FK to auth.users) | Primary identifier, security identity | 3.3, 4.3, 10.12 |
 | `first_name` | string | Display name component | 4.3, 4.8 |
 | `last_name` | string | Display name component + disambiguation | 4.3, 4.8 |
@@ -111,15 +111,15 @@ Per **PRD 3.3, 10.12**:
 
 ### Tables Requiring UUID Ownership/Actor Fields
 
-| Table | Field | Usage |
-|-------|-------|-------|
-| `profiles` | `user_id` | Links to `auth.users` |
-| `board_memberships` | `user_id` | Board membership |
-| `element_authorship` | `created_by` | Original element creator |
-| `history_events` | `actor_id` / `user_id` | Who performed the action |
-| `personal_notes` | `owner_id` | Note owner (RLS enforced) |
-| `team_notes` | `author_id` | Note author (permanent) |
-| `team_note_viewers` | `user_id` | Selected viewer |
+| Table                | Field                  | Usage                     |
+| -------------------- | ---------------------- | ------------------------- |
+| `profiles`           | `user_id`              | Links to `auth.users`     |
+| `board_memberships`  | `user_id`              | Board membership          |
+| `element_authorship` | `created_by`           | Original element creator  |
+| `history_events`     | `actor_id` / `user_id` | Who performed the action  |
+| `personal_notes`     | `owner_id`             | Note owner (RLS enforced) |
+| `team_notes`         | `author_id`            | Note author (permanent)   |
+| `team_note_viewers`  | `user_id`              | Selected viewer           |
 
 **Critical security rule**: Never store or use Excalidraw display names, emails, or client-supplied user IDs for authorization (PRD 10.12).
 
@@ -134,7 +134,10 @@ Per **PRD 3.3, 10.12**:
 ```typescript
 // Current: Username stored in localStorage
 export const saveUsernameToLocalStorage = (username: string) => {
-  localStorage.setItem(STORAGE_KEYS.LOCAL_STORAGE_COLLAB, JSON.stringify({ username }));
+  localStorage.setItem(
+    STORAGE_KEYS.LOCAL_STORAGE_COLLAB,
+    JSON.stringify({ username }),
+  );
 };
 ```
 
@@ -143,7 +146,7 @@ export const saveUsernameToLocalStorage = (username: string) => {
 ```typescript
 // Collaborator state only contains username (no secure identity)
 interface CollabState {
-  username: string;  // This is just a display string!
+  username: string; // This is just a display string!
   // ...
 }
 ```
@@ -158,7 +161,7 @@ interface CollabState {
 ### Required Separation
 
 | Aspect | Excalidraw Collaborator | Supabase Auth |
-|--------|------------------------|---------------|
+| --- | --- | --- |
 | **Purpose** | Real-time cursor/presence display | Security identity & authorization |
 | **Storage** | In-memory, localStorage | Supabase auth.users + profiles table |
 | **Identifier** | Socket ID + username string | UUID (auth.uid()) |
@@ -172,8 +175,11 @@ The Supabase user profile should **populate** the Excalidraw collaborator userna
 ```typescript
 // Pseudocode for integration
 const supabaseProfile = await getProfile(supabase.auth.getUser().id);
-const displayName = formatDisplayName(supabaseProfile.first_name, supabaseProfile.last_name);
-collabAPI.setUsername(displayName);  // Sets the display string
+const displayName = formatDisplayName(
+  supabaseProfile.first_name,
+  supabaseProfile.last_name,
+);
+collabAPI.setUsername(displayName); // Sets the display string
 ```
 
 For persistence operations, **always use `auth.uid()`**, never the display username.
@@ -185,7 +191,7 @@ For persistence operations, **always use `auth.uid()`**, never the display usern
 ### Session Restoration
 
 | Event | Location | Required Action |
-|-------|----------|-----------------|
+| --- | --- | --- |
 | App load | `index.tsx` / `App.tsx` init | `supabase.auth.getSession()` → restore or redirect |
 | Tab focus | `App.tsx:660-670` (visibilityChange) | Verify session still valid |
 | Hash change | `App.tsx:570-594` | Check auth before loading board data |
@@ -193,7 +199,7 @@ For persistence operations, **always use `auth.uid()`**, never the display usern
 ### Sign-Out
 
 | Location | Current Code | Required Change |
-|----------|--------------|-----------------|
+| --- | --- | --- |
 | (NEW) | N/A | Add sign-out button in AppMainMenu |
 | Sign-out action | N/A | `await supabase.auth.signOut()` |
 | Post sign-out | N/A | Clear UI state, remove private data per PRD 4.5, 12.6 |
@@ -224,19 +230,19 @@ For persistence operations, **always use `auth.uid()`**, never the display usern
 
 ### New Files to Create
 
-| File | Purpose |
-|------|---------|
-| `excalidraw-app/supabase/client.ts` | Supabase client initialization |
-| `excalidraw-app/supabase/auth.ts` | Auth helper functions |
-| `excalidraw-app/auth/AuthProvider.tsx` | React context for auth state |
-| `excalidraw-app/auth/AuthDialog.tsx` | Sign-in/sign-up UI |
-| `excalidraw-app/auth/ProfileForm.tsx` | Account creation form |
-| `excalidraw-app/hooks/useSupabaseAuth.ts` | Auth state hook |
+| File                                      | Purpose                        |
+| ----------------------------------------- | ------------------------------ |
+| `excalidraw-app/supabase/client.ts`       | Supabase client initialization |
+| `excalidraw-app/supabase/auth.ts`         | Auth helper functions          |
+| `excalidraw-app/auth/AuthProvider.tsx`    | React context for auth state   |
+| `excalidraw-app/auth/AuthDialog.tsx`      | Sign-in/sign-up UI             |
+| `excalidraw-app/auth/ProfileForm.tsx`     | Account creation form          |
+| `excalidraw-app/hooks/useSupabaseAuth.ts` | Auth state hook                |
 
 ### Existing Files to Modify
 
 | File | Change |
-|------|--------|
+| --- | --- |
 | `.env.development` | Add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` |
 | `excalidraw-app/index.tsx` | Initialize Supabase, wrap with AuthProvider |
 | `excalidraw-app/App.tsx` | Auth state checks, gate collaboration on auth |
@@ -302,7 +308,7 @@ export const getCollaborationLinkData = (link: string) => {
 ## Summary: Integration Readiness Checklist
 
 | Requirement | Status | Notes |
-|-------------|--------|-------|
+| --- | --- | --- |
 | Session establish/restore points identified | ✅ | App init, hash change, visibility change |
 | Sign-in/account creation integration points | ✅ | ShareDialog, board link entry, new AuthDialog |
 | Profile data: first_name, last_name | ✅ | Per PRD 4.3, 4.8, 9.2 |

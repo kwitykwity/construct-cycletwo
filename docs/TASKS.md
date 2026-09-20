@@ -3,6 +3,7 @@
 **PRD Reference:** `C:\Users\ruizc\Downloads\Construct -CycleTwo Tech PRD.pdf`
 
 **Key Rules:**
+
 - Identity comes from Supabase Auth only — never from Excalidraw collaborator/display names
 - Do not hard-code demo credentials or secrets anywhere
 - If unclear, ask questions. Do not assume anything.
@@ -16,6 +17,7 @@
 **Status:** Complete - Analysis documented in `docs/TASK2-supabase-auth-integration-analysis.md`
 
 **Summary:**
+
 - Identified session establishment/restoration points
 - Identified sign-in/account creation integration points
 - Confirmed profile data: first_name, last_name
@@ -23,95 +25,241 @@
 - Verified Excalidraw collaborator identity ≠ security identity
 
 **Unlocks:**
+
 - Profile/membership implementation
 - Authenticated feature data access
 - Prepared two-account demo setup
 
 ---
 
-## Remaining Tasks (Based on PRD)
+## Foundation Tasks (PRD 16.2-16.4)
 
-### Foundation Tasks (Must be done first per PRD 16.2-16.4)
+### Task: Implement Supabase Client Setup ✅ COMPLETE
 
-#### Task: Implement Supabase Client Setup
 **PRD Sections:** 3.1, 4.1-4.9, 11.2
-- Create `excalidraw-app/supabase/client.ts`
-- Add environment variables (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
-- No hard-coded secrets
 
-#### Task: Implement Auth Provider & Session Management
-**PRD Sections:** 4.1-4.9, 11.2
-- Create `excalidraw-app/auth/AuthProvider.tsx`
-- Implement session restoration on app load
-- Implement sign-in/sign-up UI
-- Implement sign-out
-- Return user to board context after auth
+**Status:** Complete (Rob's branch merged)
 
-#### Task: Implement User Profiles Table & RLS
-**PRD Sections:** 9.2, 10.8
-- Create profiles table (user_id, first_name, last_name, created_at, updated_at)
-- One-to-one with auth.users
-- RLS: users can read board members' profiles, update only own
+**Files:**
 
-#### Task: Implement Board Identity Mapping (roomId → board_id)
-**PRD Sections:** 3.2, 9.3, 16.3
-- Create boards table with internal board_id (UUID)
-- Store roomId as external reference (unique constraint)
-- NEVER store roomKey
-- Verify same roomId → same board, different roomId → different board
+- `excalidraw-app/data/supabase.ts` - Supabase client with env vars
+- `excalidraw-app/vite-env.d.ts` - TypeScript declarations for `VITE_APP_SUPABASE_URL`, `VITE_APP_SUPABASE_PUBLISHABLE_KEY`
 
-#### Task: Implement Board Memberships
-**PRD Sections:** 2.1, 4.2, 9.4, 10.2, 10.9
-- Create board_memberships table (board_id, user_id, joined_at)
-- Unique constraint on board_id + user_id
-- Idempotent membership creation
-- RLS: users can only create membership for themselves
+**Verified:**
+
+- ✅ No hard-coded secrets
+- ✅ Throws error if env vars missing
 
 ---
 
-### Feature Tasks (After foundation is verified)
+### Task: Implement Board Identity Mapping (roomId → board_id) ✅ COMPLETE
 
-#### Task: Element Authorship
+**PRD Sections:** 3.2, 9.3, 16.3
+
+**Status:** Complete (Rob's branch merged)
+
+**Files:**
+
+- `excalidraw-app/data/boardContext.ts` - `getExcalidrawRoomId()` and `getBoardIdForRoom()`
+- `backend/supabase/migrations/001_initial_schema.sql` - `resolve_board()` RPC function
+
+**Verified:**
+
+- ✅ roomId parsed from collaboration link
+- ✅ roomKey NEVER passed to Supabase
+- ✅ `resolve_board()` creates board if missing, returns stable board_id
+- ✅ Idempotent membership creation in same function
+- ✅ Only authenticated users can call
+
+---
+
+### Task: Implement User Profiles Table & RLS ✅ COMPLETE
+
+**PRD Sections:** 9.2, 10.8
+
+**Status:** Complete (schema + RLS policies drafted)
+
+**Files:**
+
+- `backend/supabase/migrations/001_initial_schema.sql` - profiles table
+- `backend/supabase/migrations/002_rls_policies.sql` - RLS policies + auto-creation trigger
+
+**Verified:**
+
+- ✅ One-to-one with auth.users (user_id PK references auth.users)
+- ✅ Fields: user_id, first_name, last_name, created_at, updated_at
+- ✅ RLS: users can read own + board members' profiles
+- ✅ RLS: users can only update own profile
+- ✅ Auto-creation trigger on auth.users signup
+
+---
+
+### Task: Implement Board Memberships ✅ COMPLETE
+
+**PRD Sections:** 2.1, 4.2, 9.4, 10.2, 10.9
+
+**Status:** Complete (schema + RLS policies drafted)
+
+**Files:**
+
+- `backend/supabase/migrations/001_initial_schema.sql` - board_memberships table
+- `backend/supabase/migrations/002_rls_policies.sql` - RLS policies
+
+**Verified:**
+
+- ✅ Composite PK on (board_id, user_id) - enforces uniqueness
+- ✅ joined_at timestamp
+- ✅ Idempotent creation via `resolve_board()` ON CONFLICT DO NOTHING
+- ✅ RLS: users can only insert membership for themselves
+- ✅ RLS: users can read memberships for boards they belong to
+
+---
+
+### Task: Implement Feature Tables & RLS ✅ COMPLETE (Schema Ready)
+
+**PRD Sections:** 9.5-9.9, 10.3-10.7
+
+**Status:** Complete - Schema and RLS policies drafted, ready for migration
+
+**Files:**
+
+- `backend/supabase/migrations/003_feature_tables.sql`
+
+**Tables Created:** | Table | PRD | RLS | |-------|-----|-----| | `element_authorship` | 9.5, 10.4 | Board members read; Insert own only; No update/delete | | `history_events` | 9.6, 10.5 | Board members read; Insert own only; Append-only | | `personal_notes` | 9.7, 10.3 | Owner-only CRUD; Board membership required | | `team_notes` | 9.8, 10.6 | Author sees all; Published visibility rules enforced | | `team_note_viewers` | 9.9, 10.7 | Author manages; Viewer must be board member |
+
+---
+
+### Task: Implement Auth Provider & Session Management ✅ COMPLETE
+
+**PRD Sections:** 4.1-4.9, 11.2
+
+**Status:** Complete and tested in browser
+
+**Files:**
+
+- `excalidraw-app/auth/atoms.ts` - Jotai atoms for auth state
+- `excalidraw-app/auth/AuthProvider.tsx` - Session management, auth state changes
+- `excalidraw-app/auth/useSupabaseAuth.ts` - signIn/signUp/signOut hooks
+- `excalidraw-app/auth/AuthDialog.tsx` - Sign-in/Sign-up modal UI (custom SimpleModal, not Excalidraw Dialog)
+- `excalidraw-app/auth/AuthDialog.scss` - Modal and dialog styling
+- `excalidraw-app/auth/UserAuthButton.tsx` - Top-right sign-in button / user menu
+- `excalidraw-app/auth/UserAuthButton.scss` - Button styling
+- `excalidraw-app/auth/index.ts` - Module exports
+- `excalidraw-app/App.tsx` - AuthProvider + UserAuthButton integrated
+
+**Verified (tested in browser):**
+
+- ✅ Sign-in button appears in top-right UI
+- ✅ Auth dialog opens when clicking Sign In
+- ✅ Sign-up creates account in Supabase Auth
+- ✅ Sign-up captures first_name, last_name in user metadata (4.8)
+- ✅ Sign-in with email/password works (4.6)
+- ✅ Sign-out clears session (4.5)
+- ✅ Session restoration on app load (4.4)
+- ✅ User menu with sign-out option when authenticated
+- ✅ TypeScript compiles with no errors
+- ✅ ESLint passes with no errors
+
+**Implementation Notes:**
+
+- Uses custom `SimpleModal` instead of Excalidraw's `<Dialog>` to avoid context dependency issues
+- Imports Jotai hooks from `app-jotai` (project convention, not directly from `jotai`)
+- Profile loading gracefully falls back to "User" when profiles table doesn't exist
+
+**Awaiting Migrations:**
+
+- ⏳ Display name shows "User" until `profiles` table exists with `handle_new_user` trigger
+- ⏳ Profile data (first_name, last_name) stored in Supabase Auth user metadata, needs migration to copy to profiles table
+
+---
+
+## Feature Tasks (After foundation is verified)
+
+### Task: Element Authorship ⬜ TODO
+
 **PRD Sections:** 2.2, 5.1-5.7, 9.5, 10.4
-- Create element_authorship table
+
+**Dependencies:** Auth Provider ✅, Feature Tables Migration (pending)
+
+**Required:**
+
 - Hook element creation to persist authorship
 - Display "Rob W 11:42am 9/18/26" format on hover
 - Never transfer authorship on modification
-
-#### Task: History Panel
-**PRD Sections:** 2.3, 6.1-6.9, 9.6, 10.5
-- Create history_events table
-- Hook meaningful Excalidraw actions
-- Floating window UI
-- 15-minute grouping, archive hierarchy
-
-#### Task: Personal Notes
-**PRD Sections:** 2.4, 7.1-7.13, 9.7, 10.3
-- Create personal_notes table
-- Owner-only RLS (strict privacy)
-- Floating window with formatting
-- Autosave, DONE behavior
-
-#### Task: Team Notes
-**PRD Sections:** 2.5, 8.1-8.17, 9.8-9.9, 10.6-10.7, 10.10-10.11
-- Create team_notes and team_note_viewers tables
-- Everyone vs Selected visibility
-- Draft → Publication flow
-- Author-only edit/delete, recipients read-only
+- Handle missing authorship gracefully ("Author unavailable")
 
 ---
 
-### Integration & Demo Tasks
+### Task: History Panel ⬜ TODO
 
-#### Task: Shared Frontend Infrastructure
+**PRD Sections:** 2.3, 6.1-6.9, 9.6, 10.5
+
+**Dependencies:** Auth Provider ✅, Feature Tables Migration (pending)
+
+**Required:**
+
+- Hook meaningful Excalidraw actions (Created, Edited, Moved, etc.)
+- Floating window UI (movable, resizable)
+- 15-minute grouping logic
+- Archive hierarchy (Today, Yesterday, weeks, months, years)
+- Loading/empty/error states
+
+---
+
+### Task: Personal Notes ⬜ TODO
+
+**PRD Sections:** 2.4, 7.1-7.13, 9.7, 10.3
+
+**Dependencies:** Auth Provider ✅, Feature Tables Migration (pending), Shared Frontend Infrastructure
+
+**Required:**
+
+- Floating window UI
+- Note editor with formatting (bold, S/M/L/XL sizes)
+- Autosave with debounce
+- DONE button behavior
+- Delete confirmation
+- Unsaved changes protection
+
+---
+
+### Task: Team Notes ⬜ TODO
+
+**PRD Sections:** 2.5, 8.1-8.17, 9.8-9.9, 10.6-10.7, 10.10-10.11
+
+**Dependencies:** Personal Notes (shared editor), Feature Tables Migration (pending)
+
+**Required:**
+
+- Everyone vs Selected visibility picker
+- Draft → Publication flow (DONE publishes)
+- Author-only edit/delete
+- Recipients read-only view
+- Visibility change handling
+
+---
+
+## Integration & Demo Tasks
+
+### Task: Shared Frontend Infrastructure ⬜ TODO
+
 **PRD Sections:** 11.8-11.16, 16.5
-- Display name formatter (first + last initial, collision handling)
-- Date/time formatter (M/D/YYYY, h:mmam/pm)
-- Floating window component
-- Note editor component
 
-#### Task: Two-Account Demo Setup
+**Required:**
+
+- Display name formatter (first + last initial, collision handling)
+- Date/time formatter (M/D/YYYY for notes, M/D/YY for authorship hover, h:mmam/pm)
+- Floating window component (movable, resizable, X close, default geometry)
+- Note editor component (multiline, bold, 4 text sizes)
+
+---
+
+### Task: Two-Account Demo Setup ⬜ TODO
+
 **PRD Sections:** 14.2, 14.10
+
+**Required:**
+
 - Create two test accounts in Supabase (credentials NOT in code)
 - Verify both can join same board
 - Verify data isolation (Personal Notes)
@@ -123,11 +271,46 @@
 
 1. ✅ Technical PRD locked
 2. ✅ Task 2: Inspect integration points
-3. ⬜ Implement roomId-to-board_id mapping
-4. ⬜ Redesign database migration and RLS
-5. ⬜ Verify authentication/profile/membership foundation
-6. ⬜ Establish shared frontend infrastructure
-7. ⬜ Implement feature work (can parallelize after foundation)
-8. ⬜ Verify each feature and security boundary
-9. ⬜ Integrated regression testing
-10. ⬜ Prepare and rehearse two-account demo
+3. ✅ Implement roomId-to-board_id mapping (Rob's branch merged)
+4. ✅ Redesign database migration and RLS (migrations 001-003 drafted)
+5. ⬜ **BLOCKED:** Run migrations on Supabase (waiting for collaborator access)
+6. ✅ Implement Auth Provider & Session Management (frontend complete)
+7. ⬜ Establish shared frontend infrastructure
+8. ⬜ Implement feature work (can parallelize after foundation)
+9. ⬜ Verify each feature and security boundary
+10. ⬜ Integrated regression testing
+11. ⬜ Prepare and rehearse two-account demo
+
+---
+
+## Migration Files
+
+| File | Status | Purpose |
+| --- | --- | --- |
+| `001_initial_schema.sql` | Ready | profiles, boards, board_memberships, resolve_board() |
+| `002_rls_policies.sql` | Ready | RLS policies for foundation tables, profile trigger, is_board_member() |
+| `003_feature_tables.sql` | Ready | element_authorship, history_events, personal_notes, team_notes, team_note_viewers + RLS |
+
+**Blocked:** Waiting for Supabase collaborator access to run migrations.
+
+---
+
+## Environment Setup Required
+
+To test locally, create `.env.local` file in the **project root** (not excalidraw-app/):
+
+```
+VITE_APP_SUPABASE_URL=<your-supabase-url>
+VITE_APP_SUPABASE_PUBLISHABLE_KEY=<your-supabase-publishable-key>
+```
+
+**Note:** The key format is `sb_publishable_...` (Supabase's newer publishable API key format).
+
+Then run:
+
+```bash
+yarn install --ignore-engines
+yarn start
+```
+
+The `.env.local` file is gitignored and will not be committed.

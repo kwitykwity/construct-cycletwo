@@ -1,5 +1,6 @@
-import { getCollaborationLinkData } from "./index";
 import { supabase } from "./supabase";
+
+import { getCollaborationLinkData } from "./index";
 
 export const getExcalidrawRoomId = (link: string): string | null => {
   const collaborationData = getCollaborationLinkData(link);
@@ -11,9 +12,7 @@ export const getExcalidrawRoomId = (link: string): string | null => {
   return collaborationData.roomId;
 };
 
-export const getBoardIdForRoom = async (
-  roomId: string,
-): Promise<string> => {
+export const getBoardIdForRoom = async (roomId: string): Promise<string> => {
   const { data, error } = await supabase.rpc("resolve_board", {
     p_excalidraw_room_id: roomId,
   });
