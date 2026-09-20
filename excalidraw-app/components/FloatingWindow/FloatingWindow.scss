@@ -1,0 +1,114 @@
+.floating-window {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--island-bg-color, #fff);
+  border-radius: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  overflow: hidden;
+
+  // Prevent text selection while dragging/resizing
+  &--dragging,
+  &--resizing {
+    user-select: none;
+
+    * {
+      user-select: none;
+    }
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem 1rem;
+    background-color: var(--button-hover-bg, rgba(0, 0, 0, 0.03));
+    border-bottom: 1px solid var(--default-border-color, #e0e0e0);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary-color, #333);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    margin-left: 0.5rem;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--text-secondary-color, #666);
+    background: none;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
+
+    &:hover {
+      background-color: var(--button-hover-bg, rgba(0, 0, 0, 0.08));
+      color: var(--text-primary-color, #333);
+    }
+
+    &:active {
+      background-color: rgba(0, 0, 0, 0.12);
+    }
+  }
+
+  &__content {
+    flex: 1;
+    overflow: auto;
+    padding: 1rem;
+  }
+
+  &__resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 16px;
+    height: 16px;
+    cursor: se-resize;
+
+    // Resize grip visual
+    &::before {
+      content: "";
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      width: 8px;
+      height: 8px;
+      border-right: 2px solid var(--text-secondary-color, #999);
+      border-bottom: 2px solid var(--text-secondary-color, #999);
+      opacity: 0.5;
+    }
+
+    &:hover::before {
+      opacity: 0.8;
+    }
+  }
+}
+
+// Dark theme support
+[data-theme="dark"] {
+  .floating-window {
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+
+    &__header {
+      background-color: rgba(255, 255, 255, 0.03);
+    }
+
+    &__close:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+  }
+}
