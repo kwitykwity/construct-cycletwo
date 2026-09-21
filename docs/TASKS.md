@@ -290,6 +290,34 @@
 
 ---
 
+### Task 6: Two-Account RLS + Privacy + Authorization Verification ⏳ IN PROGRESS
+
+**PRD Sections:** 10.1-10.12, 14.2, 14.10
+
+**Status:** Manual SQL verification document created
+
+**Documentation:** `docs/TASK6-rls-verification.md`
+
+**Verification Areas:**
+
+- ⏳ Board membership/access for both users
+- ⏳ Personal Notes owner-only privacy
+- ⏳ Team Notes draft author-only visibility
+- ⏳ Team Notes published Everyone/Selected visibility
+- ⏳ Publication/visibility atomic RPC enforcement
+- ⏳ Element Authorship creator identity protection
+- ⏳ History Events actor identity + append-only
+- ⏳ Cross-board data isolation
+- ⏳ Direct membership manipulation prevention
+
+**Next Steps:**
+
+1. Run verification queries from `TASK6-rls-verification.md` in Supabase SQL Editor
+2. Complete verification checklist
+3. Document any findings/issues
+
+---
+
 ### Task: Two-Account Demo Setup ⬜ TODO
 
 **PRD Sections:** 14.2, 14.10
@@ -309,11 +337,11 @@
 2. ✅ Task 2: Inspect integration points
 3. ✅ Implement roomId-to-board_id mapping (Rob's branch merged)
 4. ✅ Redesign database migration and RLS (migrations 001-003 drafted)
-5. ⬜ Run migrations on Supabase (review complete - see Migration Files, not yet executed)
+5. ✅ Run migrations on Supabase (applied by Rob Walker)
 6. ✅ Implement Auth Provider & Session Management (frontend complete)
 7. ✅ Establish shared frontend infrastructure (Task 4 complete)
 8. ⬜ Implement feature work (can parallelize after foundation)
-9. ⬜ Verify each feature and security boundary
+9. ⏳ Verify each feature and security boundary (Task 6 in progress)
 10. ⬜ Integrated regression testing
 11. ⬜ Prepare and rehearse two-account demo
 
@@ -323,11 +351,11 @@
 
 | File | Status | Purpose |
 | --- | --- | --- |
-| `001_initial_schema.sql` | Ready | profiles, boards, board_memberships, resolve_board() |
-| `002_rls_policies.sql` | ✅ Review Complete | RLS policies for foundation tables, profile trigger, is_board_member() |
-| `003_feature_tables.sql` | ✅ Review Complete | element_authorship, history_events, personal_notes, team_notes, team_note_viewers + RLS |
+| `001_initial_schema.sql` | ✅ Applied | profiles, boards, board_memberships, resolve_board() |
+| `002_rls_policies.sql` | ✅ Applied | RLS policies for foundation tables, profile trigger, is_board_member() |
+| `003_feature_tables.sql` | ✅ Applied | element_authorship, history_events, personal_notes, team_notes, team_note_viewers + RLS |
 
-**Database migrations 002/003:** Engineering review complete. Security/RLS revisions approved and committed in `a1f1af33` on `task4-hardening`. Migrations have **not yet been executed** in Supabase. Next step: apply migrations and perform multi-account/RLS verification.
+**Database migrations:** All migrations (001-003) have been applied to Supabase by Rob Walker. Task 6 RLS verification is in progress.
 
 ---
 
