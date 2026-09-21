@@ -42,6 +42,12 @@ describe("@excalidraw/common/utils", () => {
 
       iframe.remove();
     });
+       it("treats email inputs as writable elements", () => {
+        const input = document.createElement("input");
+        input.type = "email";
+
+        expect(isWritableElement(input)).toBe(true);
+      });
   });
 
   describe("isTransparent()", () => {
