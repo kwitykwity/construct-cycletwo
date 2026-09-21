@@ -309,7 +309,7 @@
 2. ✅ Task 2: Inspect integration points
 3. ✅ Implement roomId-to-board_id mapping (Rob's branch merged)
 4. ✅ Redesign database migration and RLS (migrations 001-003 drafted)
-5. ⬜ **BLOCKED:** Run migrations on Supabase (pending consolidated engineering review - see Migration Files)
+5. ⬜ Run migrations on Supabase (review complete - see Migration Files, not yet executed)
 6. ✅ Implement Auth Provider & Session Management (frontend complete)
 7. ✅ Establish shared frontend infrastructure (Task 4 complete)
 8. ⬜ Implement feature work (can parallelize after foundation)
@@ -324,10 +324,10 @@
 | File | Status | Purpose |
 | --- | --- | --- |
 | `001_initial_schema.sql` | Ready | profiles, boards, board_memberships, resolve_board() |
-| `002_rls_policies.sql` | **Blocked** | RLS policies for foundation tables, profile trigger, is_board_member() |
-| `003_feature_tables.sql` | **Blocked** | element_authorship, history_events, personal_notes, team_notes, team_note_viewers + RLS |
+| `002_rls_policies.sql` | ✅ Review Complete | RLS policies for foundation tables, profile trigger, is_board_member() |
+| `003_feature_tables.sql` | ✅ Review Complete | element_authorship, history_events, personal_notes, team_notes, team_note_viewers + RLS |
 
-**Blocked:** `002_rls_policies.sql` and `003_feature_tables.sql` held pending consolidated engineering review. Engineering review on 9/20 identified RLS/security issues that must be resolved before execution. Do not run or edit either migration until the consolidated review is complete.
+**Database migrations 002/003:** Engineering review complete. Security/RLS revisions approved and committed in `a1f1af33` on `task4-hardening`. Migrations have **not yet been executed** in Supabase. Next step: apply migrations and perform multi-account/RLS verification.
 
 ---
 
