@@ -50,6 +50,15 @@ describe("@excalidraw/common/utils", () => {
       });
   });
 
+  describe("isWritableElement()", () => {
+    it("treats email inputs as writable elements", () => {
+      const input = document.createElement("input");
+      input.type = "email";
+
+      expect(isWritableElement(input)).toBe(true);
+    });
+  });
+
   describe("isTransparent()", () => {
     it("should return true when color is rgb transparent", () => {
       expect(isTransparent("#ff00")).toEqual(true);

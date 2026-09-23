@@ -68,6 +68,8 @@ import {
   getCollaborationLink,
   getSyncableElements,
 } from "../data";
+import { getBoardIdForRoom } from "../data/boardContext";
+import { currentBoardIdAtom, supabaseUserAtom } from "../auth";
 import {
   encodeFilesForUpload,
   FileManager,
@@ -419,6 +421,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
       this.setIsCollaborating(false);
       this.setActiveRoomLink(null);
       appJotaiStore.set(userToFollowAtom, null);
+      appJotaiStore.set(currentBoardIdAtom, null);
       this.collaborators = new Map();
       this.excalidrawAPI.updateScene({
         collaborators: this.collaborators,
@@ -504,6 +507,25 @@ class Collab extends PureComponent<CollabProps, CollabState> {
         APP_NAME,
         getCollaborationLink({ roomId, roomKey }),
       );
+    }
+
+    // Resolve internal Supabase board_id for authenticated features
+    // (Authorship, History, Personal Notes, Team Notes)
+    // Security boundary: only authenticated users may resolve boards
+    const user = appJotaiStore.get(supabaseUserAtom);
+    if (user) {
+      try {
+        // Note: only roomId is sent to Supabase — roomKey never leaves client
+        const boardId = await getBoardIdForRoom(roomId);
+        appJotaiStore.set(currentBoardIdAtom, boardId);
+      } catch (error) {
+        // Board resolution failed — authenticated features unavailable
+        console.warn("Could not resolve board:", error);
+        appJotaiStore.set(currentBoardIdAtom, null);
+      }
+    } else {
+      // Unauthenticated — skip board resolution, authenticated features disabled
+      appJotaiStore.set(currentBoardIdAtom, null);
     }
 
     // TODO: `ImportedDataState` type here seems abused
