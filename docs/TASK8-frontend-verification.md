@@ -143,3 +143,46 @@ untouched; the real fix still belongs there and is owned by Task 4.
 
 Findings 1 (note HTML rendered unsanitized) and 4-6 remain open and were not
 addressed here.
+
+---
+
+## Authenticated-board checks (2026-09-23, after migration 004)
+
+Run as a real signed-in user (`trevor.rukwava@pursuit.org`,
+uid `1eb97569-...`) against production, through the Task 8 panel and the REST API
+with that user's access token.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Sign-up → sign-in → authenticated state | Pass | Panel reads `Authenticated: yes` |
+| Profile created automatically at signup | **Pass** | `GET /profiles` returns one row, `created_at` = signup time, names from signup metadata. The `on_auth_user_created` trigger works. |
+| Display name format (first + last initial) | Pass | `Trevor R` in both the panel and the top-right user button |
+| Own-profile UPDATE allowed | Pass | `PATCH /profiles?user_id=eq.<me>` → 200 with the row returned |
+| Cross-user profile UPDATE blocked by RLS | **Pass** | `PATCH /profiles?user_id=eq.<other>` → 200 with body `[]`, i.e. **zero rows changed** |
+| Direct membership INSERT blocked | Pass (by design) | `POST /board_memberships` → 403, Postgres `42501` |
+| Session restored after reload | Pass | Still `Authenticated: yes` / `Trevor R` after a full page reload |
+| Board id resolution | Not run here | Needs a live collaboration room (`excalidraw-room` on :3002). Sal verified `resolve_board()` separately. |
+| Two-user checks | Not run | Needs a second confirmed account |
+
+### Bearing on Task 7's four remaining failures
+
+The API evidence above supports reading three of Sal's four failures as test
+expectations rather than migration gaps:
+
+1. **"User A/B can create own profile" (403 on INSERT).** The profile row already
+   exists — created by the signup trigger. Migration 004 deliberately grants only
+   `select, update` on `profiles`. The test should assert the row exists after
+   signup and then UPDATE it; UPDATE works (verified above).
+2. **"User A cannot modify User B's profile (RLS)" reported as FAIL.** A PATCH that
+   matches no rows returns a success status with an empty body. Verified above:
+   status 200, body `[]`, nothing changed. RLS is holding. The test needs to assert
+   on rows returned/changed, not on the status code.
+3. **"User B membership created" (403 on INSERT).** Membership creation is
+   deliberately routed through `resolve_board()` (security definer, granted to
+   authenticated). The test should call the RPC rather than inserting directly.
+
+One cleanup for whoever owns the migrations: the `profiles_insert_own` policy
+exists while the table-level INSERT privilege is intentionally withheld, so the
+policy can never apply. Either grant INSERT (the policy's `with check` is already
+`user_id = auth.uid()`) or drop the unused policy, so this stops looking like a
+missing grant.
