@@ -182,8 +182,13 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(
     }, [onChange]);
 
     // Handle keyboard shortcuts
+    // IMPORTANT: Stop propagation to prevent canvas from receiving keyboard events
+    // This prevents Backspace/Delete from deleting canvas elements while typing
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent) => {
+        // Stop all keyboard events from bubbling to canvas
+        e.stopPropagation();
+
         // Ctrl/Cmd + B for bold
         if ((e.ctrlKey || e.metaKey) && e.key === "b") {
           e.preventDefault();
