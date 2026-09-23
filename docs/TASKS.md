@@ -265,12 +265,12 @@
 
 **Implemented Components:**
 
-| Component | Location | Status |
-| --- | --- | --- |
-| `formatters.ts` | `excalidraw-app/utils/` | ✅ Complete |
-| `states/` | `excalidraw-app/components/` | ✅ Complete |
+| Component         | Location                     | Status      |
+| ----------------- | ---------------------------- | ----------- |
+| `formatters.ts`   | `excalidraw-app/utils/`      | ✅ Complete |
+| `states/`         | `excalidraw-app/components/` | ✅ Complete |
 | `FloatingWindow/` | `excalidraw-app/components/` | ✅ Complete |
-| `NoteEditor/` | `excalidraw-app/components/` | ✅ Complete |
+| `NoteEditor/`     | `excalidraw-app/components/` | ✅ Complete |
 
 **Features Delivered:**
 

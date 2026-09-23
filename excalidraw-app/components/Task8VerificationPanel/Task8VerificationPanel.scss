@@ -1,0 +1,54 @@
+// TEMPORARY - Task 8 verification harness styles. Remove with the component.
+
+.task8-trigger {
+  align-self: center;
+  border: 1px dashed var(--color-primary, #6965db);
+  border-radius: var(--border-radius-lg, 8px);
+  background: transparent;
+  color: var(--color-primary, #6965db);
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.task8-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+
+  &__context {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: 0.125rem 0.5rem;
+    font-size: 0.75rem;
+    margin: 0;
+
+    dt {
+      color: var(--color-gray-60, #6b7280);
+    }
+
+    dd {
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  &__views {
+    display: flex;
+    gap: 0.25rem;
+
+    button {
+      border: 1px solid var(--color-gray-30, #d1d5db);
+      border-radius: var(--border-radius-md, 6px);
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.7rem;
+      padding: 0.125rem 0.375rem;
+    }
+  }
+
+  &__view--active {
+    background: var(--color-primary-light, #e3e2fe) !important;
+  }
+}

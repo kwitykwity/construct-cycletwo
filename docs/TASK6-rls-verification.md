@@ -3,6 +3,7 @@
 **Purpose:** Manual SQL verification of all RLS policies using two authenticated test users.
 
 **Prerequisites:**
+
 - Migrations 001, 002, 003 applied to Supabase
 - Two test accounts created in Supabase Auth (via app sign-up or dashboard)
 
@@ -26,6 +27,7 @@ ORDER BY u.created_at;
 ```
 
 **Record the two user IDs for testing:**
+
 - User A (first tester): `________________________________`
 - User B (second tester): `________________________________`
 
@@ -669,36 +671,36 @@ VALUES ('<BOARD_ID>', '<USER_A_ID>');
 
 ## Verification Checklist
 
-| Test | Expected | Actual | Pass? |
-|------|----------|--------|-------|
-| 1.1 User A creates board | Success | | |
-| 1.2 User B joins same board | Same board_id | | |
-| 1.3 Both users are members | 2 rows | | |
-| 2.2 User A reads own note | 1 row | | |
-| 2.3 User B cannot read A's note | 0 rows | | |
-| 2.4 User B cannot update A's note | 0 affected | | |
-| 2.5 User B cannot delete A's note | 0 affected | | |
-| 2.6 User B cannot forge owner_id | ERROR | | |
-| 3.2 User A sees own draft | 1 row | | |
-| 3.3 User B cannot see A's draft | 0 rows | | |
-| 4.1 User A publishes (everyone) | Success | | |
-| 4.2 User B sees published note | 1 row | | |
-| 4.3 User B cannot update | 0 affected | | |
-| 5.2 Selected visibility publish | Success | | |
-| 5.3 Viewer can see note | 1 row | | |
-| 5.5 Non-viewer cannot see | 0 rows | | |
-| 6.2 Non-author cannot change visibility | ERROR | | |
-| 6.3 Direct published_at UPDATE blocked | 0 affected | | |
-| 7.2 Cannot forge created_by | ERROR | | |
-| 7.3 Authorship cannot be updated | 0 affected | | |
-| 7.4 Authorship cannot be deleted | 0 affected | | |
-| 8.2 Cannot forge actor_id | ERROR | | |
-| 8.3 Events cannot be updated | 0 affected | | |
-| 8.4 Events cannot be deleted | 0 affected | | |
-| 9.3 Cross-board read blocked | 0 rows | | |
-| 9.4 Cross-board insert blocked | ERROR | | |
-| 10.2 Cannot update other's profile | 0 affected | | |
-| 11.1 Direct membership insert blocked | ERROR | | |
+| Test                                    | Expected      | Actual | Pass? |
+| --------------------------------------- | ------------- | ------ | ----- |
+| 1.1 User A creates board                | Success       |        |       |
+| 1.2 User B joins same board             | Same board_id |        |       |
+| 1.3 Both users are members              | 2 rows        |        |       |
+| 2.2 User A reads own note               | 1 row         |        |       |
+| 2.3 User B cannot read A's note         | 0 rows        |        |       |
+| 2.4 User B cannot update A's note       | 0 affected    |        |       |
+| 2.5 User B cannot delete A's note       | 0 affected    |        |       |
+| 2.6 User B cannot forge owner_id        | ERROR         |        |       |
+| 3.2 User A sees own draft               | 1 row         |        |       |
+| 3.3 User B cannot see A's draft         | 0 rows        |        |       |
+| 4.1 User A publishes (everyone)         | Success       |        |       |
+| 4.2 User B sees published note          | 1 row         |        |       |
+| 4.3 User B cannot update                | 0 affected    |        |       |
+| 5.2 Selected visibility publish         | Success       |        |       |
+| 5.3 Viewer can see note                 | 1 row         |        |       |
+| 5.5 Non-viewer cannot see               | 0 rows        |        |       |
+| 6.2 Non-author cannot change visibility | ERROR         |        |       |
+| 6.3 Direct published_at UPDATE blocked  | 0 affected    |        |       |
+| 7.2 Cannot forge created_by             | ERROR         |        |       |
+| 7.3 Authorship cannot be updated        | 0 affected    |        |       |
+| 7.4 Authorship cannot be deleted        | 0 affected    |        |       |
+| 8.2 Cannot forge actor_id               | ERROR         |        |       |
+| 8.3 Events cannot be updated            | 0 affected    |        |       |
+| 8.4 Events cannot be deleted            | 0 affected    |        |       |
+| 9.3 Cross-board read blocked            | 0 rows        |        |       |
+| 9.4 Cross-board insert blocked          | ERROR         |        |       |
+| 10.2 Cannot update other's profile      | 0 affected    |        |       |
+| 11.1 Direct membership insert blocked   | ERROR         |        |       |
 
 ---
 
