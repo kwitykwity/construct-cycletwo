@@ -44,10 +44,33 @@ export interface NoteEditorRef {
 }
 
 /**
+ * Dangerous tags whose content should be stripped entirely (not just the tag)
+ * These tags contain executable code or styles, not user-visible text
+ */
+const DANGEROUS_TAGS = new Set([
+  "script",
+  "style",
+  "noscript",
+  "template",
+  "iframe",
+  "object",
+  "embed",
+  "applet",
+  "frame",
+  "frameset",
+  "link",
+  "meta",
+  "base",
+  "svg",
+  "math",
+]);
+
+/**
  * Sanitize HTML content to only allow bold tags
  * Per PRD: Bold formatting only, no other rich-text features
+ * SECURITY: This function strips all dangerous HTML including scripts, event handlers, etc.
  */
-function sanitizeHtml(html: string): string {
+export function sanitizeHtml(html: string): string {
   // Create a temporary element to parse HTML
   const temp = document.createElement("div");
   temp.innerHTML = html;
@@ -61,6 +84,12 @@ function sanitizeHtml(html: string): string {
     if (node.nodeType === Node.ELEMENT_NODE) {
       const element = node as Element;
       const tagName = element.tagName.toLowerCase();
+
+      // Skip dangerous elements entirely (including their content)
+      if (DANGEROUS_TAGS.has(tagName)) {
+        return "";
+      }
+
       const childContent = Array.from(node.childNodes).map(sanitize).join("");
 
       // Keep bold tags
@@ -116,14 +145,17 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(
     }));
 
     // Sync external value changes to contenteditable
+    // SECURITY: Always sanitize external content (e.g., Team Notes from other users)
     useEffect(() => {
       if (editorRef.current && value !== lastValueRef.current) {
+        // Sanitize external value to prevent XSS from Team Notes
+        const sanitizedValue = sanitizeHtml(value);
         // Only update if the value actually changed externally
         const currentHtml = editorRef.current.innerHTML;
-        if (currentHtml !== value) {
-          editorRef.current.innerHTML = value;
+        if (currentHtml !== sanitizedValue) {
+          editorRef.current.innerHTML = sanitizedValue;
         }
-        lastValueRef.current = value;
+        lastValueRef.current = sanitizedValue;
       }
     }, [value]);
 
@@ -135,11 +167,17 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(
     }, [autoFocus]);
 
     // Handle input changes
+    // SECURITY: Sanitize before save to ensure only safe HTML is stored
     const handleInput = useCallback(() => {
       if (editorRef.current) {
-        const html = editorRef.current.innerHTML;
-        lastValueRef.current = html;
-        onChange(html);
+        const rawHtml = editorRef.current.innerHTML;
+        const sanitizedHtml = sanitizeHtml(rawHtml);
+        // Update DOM if sanitization changed content (removes malicious tags)
+        if (rawHtml !== sanitizedHtml) {
+          editorRef.current.innerHTML = sanitizedHtml;
+        }
+        lastValueRef.current = sanitizedHtml;
+        onChange(sanitizedHtml);
       }
     }, [onChange]);
 
