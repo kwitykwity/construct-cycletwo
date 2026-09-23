@@ -88,7 +88,7 @@ import {
   appJotaiStore,
 } from "./app-jotai";
 import { AuthProvider, UserAuthButton } from "./auth";
-import { Task8VerificationPanel } from "./components/Task8VerificationPanel";
+import { SessionHandoff } from "./components/SessionHandoff";
 import {
   FIREBASE_STORAGE_PREFIXES,
   isExcalidrawPlusSignedUser,
@@ -1018,7 +1018,7 @@ const ExcalidrawWrapper = () => {
                 />
               )}
               <UserAuthButton />
-              <Task8VerificationPanel />
+              <SessionHandoff />
             </div>
           );
         }}

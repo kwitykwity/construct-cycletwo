@@ -103,15 +103,9 @@ Findings 1 and 2 are in Task 4 code and go back to the Task 4 author under the r
 
 ## Integration harness (added 2026-09-23)
 
-`excalidraw-app/components/Task8VerificationPanel/` mounts the Task 4 shared
-infrastructure inside the running app, behind a **Task 8** button in the top-right
-UI. It is a temporary verification harness, not a product feature, and should be
-deleted once the real History / Personal Notes / Team Notes UIs exist.
+`excalidraw-app/components/Task8VerificationPanel/` mounts the Task 4 shared infrastructure inside the running app, behind a **Task 8** button in the top-right UI. It is a temporary verification harness, not a product feature, and should be deleted once the real History / Personal Notes / Team Notes UIs exist.
 
-It renders FloatingWindow, NoteEditor + NoteEditorToolbar, the loading/error/empty
-states, and live output from the shared formatters, plus the current auth context
-(authenticated, display name, board id) so the authenticated-board checks can be
-run by signing in with the panel open.
+It renders FloatingWindow, NoteEditor + NoteEditorToolbar, the loading/error/empty states, and live output from the shared formatters, plus the current auth context (authenticated, display name, board id) so the authenticated-board checks can be run by signing in with the panel open.
 
 ### Verified in the running app (signed out)
 
@@ -129,28 +123,19 @@ run by signing in with the panel open.
 
 ### Still blocked
 
-Authenticated-board checks (display name from a real profile, resolved board id,
-two-user behavior) need the real Supabase publishable key in `.env.local` and a
-signed-in user. The panel surfaces all three values, so those checks are a
-sign-in away once the key is available.
+Authenticated-board checks (display name from a real profile, resolved board id, two-user behavior) need the real Supabase publishable key in `.env.local` and a signed-in user. The panel surfaces all three values, so those checks are a sign-in away once the key is available.
 
 ### Note on the keyboard guard
 
-The harness wraps the editor in `onKeyDownCapture={(e) => e.stopPropagation()}`.
-Without it, finding 2 reproduces: Backspace/Delete typed into the note deletes the
-selected canvas element. The guard lives in the harness so Task 4's NoteEditor is
-untouched; the real fix still belongs there and is owned by Task 4.
+The harness wraps the editor in `onKeyDownCapture={(e) => e.stopPropagation()}`. Without it, finding 2 reproduces: Backspace/Delete typed into the note deletes the selected canvas element. The guard lives in the harness so Task 4's NoteEditor is untouched; the real fix still belongs there and is owned by Task 4.
 
-Findings 1 (note HTML rendered unsanitized) and 4-6 remain open and were not
-addressed here.
+Findings 1 (note HTML rendered unsanitized) and 4-6 remain open and were not addressed here.
 
 ---
 
 ## Authenticated-board checks (2026-09-23, after migration 004)
 
-Run as a real signed-in user (`trevor.rukwava@pursuit.org`,
-uid `1eb97569-...`) against production, through the Task 8 panel and the REST API
-with that user's access token.
+Run as a real signed-in user (`trevor.rukwava@pursuit.org`, uid `1eb97569-...`) against production, through the Task 8 panel and the REST API with that user's access token.
 
 | Check | Result | Evidence |
 | --- | --- | --- |
@@ -166,23 +151,10 @@ with that user's access token.
 
 ### Bearing on Task 7's four remaining failures
 
-The API evidence above supports reading three of Sal's four failures as test
-expectations rather than migration gaps:
+The API evidence above supports reading three of Sal's four failures as test expectations rather than migration gaps:
 
-1. **"User A/B can create own profile" (403 on INSERT).** The profile row already
-   exists — created by the signup trigger. Migration 004 deliberately grants only
-   `select, update` on `profiles`. The test should assert the row exists after
-   signup and then UPDATE it; UPDATE works (verified above).
-2. **"User A cannot modify User B's profile (RLS)" reported as FAIL.** A PATCH that
-   matches no rows returns a success status with an empty body. Verified above:
-   status 200, body `[]`, nothing changed. RLS is holding. The test needs to assert
-   on rows returned/changed, not on the status code.
-3. **"User B membership created" (403 on INSERT).** Membership creation is
-   deliberately routed through `resolve_board()` (security definer, granted to
-   authenticated). The test should call the RPC rather than inserting directly.
+1. **"User A/B can create own profile" (403 on INSERT).** The profile row already exists — created by the signup trigger. Migration 004 deliberately grants only `select, update` on `profiles`. The test should assert the row exists after signup and then UPDATE it; UPDATE works (verified above).
+2. **"User A cannot modify User B's profile (RLS)" reported as FAIL.** A PATCH that matches no rows returns a success status with an empty body. Verified above: status 200, body `[]`, nothing changed. RLS is holding. The test needs to assert on rows returned/changed, not on the status code.
+3. **"User B membership created" (403 on INSERT).** Membership creation is deliberately routed through `resolve_board()` (security definer, granted to authenticated). The test should call the RPC rather than inserting directly.
 
-One cleanup for whoever owns the migrations: the `profiles_insert_own` policy
-exists while the table-level INSERT privilege is intentionally withheld, so the
-policy can never apply. Either grant INSERT (the policy's `with check` is already
-`user_id = auth.uid()`) or drop the unused policy, so this stops looking like a
-missing grant.
+One cleanup for whoever owns the migrations: the `profiles_insert_own` policy exists while the table-level INSERT privilege is intentionally withheld, so the policy can never apply. Either grant INSERT (the policy's `with check` is already `user_id = auth.uid()`) or drop the unused policy, so this stops looking like a missing grant.
