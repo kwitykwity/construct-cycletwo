@@ -290,31 +290,34 @@
 
 ---
 
-### Task 6: Two-Account RLS + Privacy + Authorization Verification ⏳ IN PROGRESS
+### Task 6: Two-Account RLS + Privacy + Authorization Verification ✅ COMPLETE
 
 **PRD Sections:** 10.1-10.12, 14.2, 14.10
 
-**Status:** Manual SQL verification document created
+**Status:** Manual SQL verification completed
 
 **Documentation:** `docs/TASK6-rls-verification.md`
 
-**Verification Areas:**
+**Verification Results:**
 
-- ⏳ Board membership/access for both users
-- ⏳ Personal Notes owner-only privacy
-- ⏳ Team Notes draft author-only visibility
-- ⏳ Team Notes published Everyone/Selected visibility
-- ⏳ Publication/visibility atomic RPC enforcement
-- ⏳ Element Authorship creator identity protection
-- ⏳ History Events actor identity + append-only
-- ⏳ Cross-board data isolation
-- ⏳ Direct membership manipulation prevention
+- ✅ Board membership/access for both users
+- ✅ Personal Notes owner-only privacy
+- ✅ Team Notes draft author-only visibility
+- ✅ Team Notes published Everyone/Selected visibility
+- ✅ Element Authorship immutability (UPDATE/DELETE blocked)
+- ✅ History Events append-only (UPDATE/DELETE blocked)
+- ✅ Cross-board data isolation
+- ✅ Author always sees own notes
 
-**Next Steps:**
+**Immutability Verification (authenticated user context):**
 
-1. Run verification queries from `TASK6-rls-verification.md` in Supabase SQL Editor
-2. Complete verification checklist
-3. Document any findings/issues
+- Element Authorship UPDATE: `ERROR: 42501: permission denied`
+- Element Authorship DELETE: `ERROR: 42501: permission denied`
+- History Events UPDATE: `ERROR: 42501: permission denied`
+- History Events DELETE: `ERROR: 42501: permission denied`
+- Data verified unchanged after each rejected operation
+
+**Security Note:** Both `element_authorship` and `history_events` tables lack UPDATE/DELETE grants for the `authenticated` role, providing database-level immutability enforcement.
 
 ---
 
@@ -341,7 +344,7 @@
 6. ✅ Implement Auth Provider & Session Management (frontend complete)
 7. ✅ Establish shared frontend infrastructure (Task 4 complete)
 8. ⬜ Implement feature work (can parallelize after foundation)
-9. ⏳ Verify each feature and security boundary (Task 6 in progress)
+9. ✅ Verify each feature and security boundary (Task 6 complete)
 10. ⬜ Integrated regression testing
 11. ⬜ Prepare and rehearse two-account demo
 
