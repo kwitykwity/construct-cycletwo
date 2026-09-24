@@ -89,6 +89,7 @@ import {
 } from "./app-jotai";
 import { AuthProvider, UserAuthButton } from "./auth";
 import { SessionHandoff } from "./components/SessionHandoff";
+import { TeamNotes } from "./components/TeamNotes";
 import {
   FIREBASE_STORAGE_PREFIXES,
   isExcalidrawPlusSignedUser,
@@ -1019,6 +1020,7 @@ const ExcalidrawWrapper = () => {
               )}
              <UserAuthButton />
              <SessionHandoff />
+             <TeamNotes />
             </div>
           );
         }}

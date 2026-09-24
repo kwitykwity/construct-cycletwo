@@ -1,0 +1,153 @@
+.team-notes-trigger {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--default-border-color);
+  border-radius: 0.5rem;
+  background: var(--island-bg-color);
+  color: var(--text-primary-color);
+  cursor: pointer;
+}
+
+.team-notes {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.team-notes__sidebar {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 0.75rem;
+  border-right: 1px solid var(--default-border-color);
+  overflow: hidden;
+}
+
+.team-notes__new {
+  width: 100%;
+  padding: 0.5rem;
+  margin-bottom: 0.75rem;
+  border: 0;
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.team-notes__list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.team-notes__list-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.team-notes__list-item--active {
+  border-color: var(--default-border-color);
+  background: var(--button-hover-bg);
+}
+
+.team-notes__list-item span,
+.team-notes__meta {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.team-notes__main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-width: 0;
+  min-height: 0;
+  padding: 0.75rem;
+  overflow-y: auto;
+}
+
+.team-notes__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.team-notes__visibility {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.team-notes__visibility label,
+.team-notes__viewers label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.team-notes__viewers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  padding: 0.6rem;
+  border: 1px solid var(--default-border-color);
+  border-radius: 0.4rem;
+}
+
+.team-notes__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: auto;
+}
+
+.team-notes__actions button,
+.team-notes__viewers button {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--default-border-color);
+  border-radius: 0.4rem;
+  cursor: pointer;
+}
+
+.team-notes__delete {
+  margin-left: auto;
+}
+
+.team-notes__empty {
+  padding: 1rem 0.5rem;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.team-notes__error {
+  font-size: 0.8rem;
+  color: var(--color-danger);
+}
+
+.team-notes button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+@media (max-width: 520px) {
+  .team-notes {
+    grid-template-columns: 1fr;
+  }
+
+  .team-notes__sidebar {
+    max-height: 150px;
+    border-right: 0;
+    border-bottom: 1px solid var(--default-border-color);
+  }
+}
