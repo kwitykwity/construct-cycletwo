@@ -1,0 +1,116 @@
+.history-panel-trigger {
+  align-self: center;
+  border: 1px solid var(--color-primary, #6965db);
+  border-radius: var(--border-radius-lg, 8px);
+  background: transparent;
+  color: var(--color-primary, #6965db);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.35rem 0.6rem;
+}
+
+.history-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__scroll {
+    flex: 1;
+    overflow-y: auto;
+    height: 100%;
+  }
+
+  &__section {
+    margin-bottom: 0.9rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__section-title {
+    margin: 0 0 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--color-gray-60, #6b7280);
+  }
+
+  &__group {
+    border: 1px solid var(--default-border-color, #e0e0e0);
+    border-radius: var(--border-radius-md, 6px);
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+  }
+
+  &__group-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+    padding: 0.45rem 0.6rem;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    text-align: left;
+    color: var(--text-primary-color, #333);
+
+    &:hover {
+      background-color: var(--button-hover-bg, rgba(0, 0, 0, 0.04));
+    }
+  }
+
+  &__group-time {
+    font-weight: 700;
+  }
+
+  &__group-count {
+    color: var(--color-gray-60, #6b7280);
+    font-size: 0.7rem;
+  }
+
+  &__chevron {
+    margin-left: auto;
+    font-size: 0.7rem;
+    color: var(--color-gray-60, #6b7280);
+    transition: transform 0.15s;
+
+    &--collapsed {
+      transform: rotate(-90deg);
+    }
+  }
+
+  &__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--default-border-color, #e0e0e0);
+  }
+
+  &__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding: 0.4rem 0.6rem;
+    border-bottom: 1px solid var(--default-border-color, #e8e8e8);
+
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+
+  &__actor {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--color-primary, #6965db);
+  }
+
+  &__action {
+    font-size: 0.78rem;
+    color: var(--text-primary-color, #333);
+  }
+}
