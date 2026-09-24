@@ -5,11 +5,14 @@ import { supabase } from "./supabase";
  *
  * Four fields only: where we left off, what's next, owner, timestamp.
  *
- * Primary storage is the board-scoped `session_handoffs` table, keyed by the
- * internal Supabase board_id resolved from the Excalidraw roomId. If that table
- * is unavailable (migration not applied) or the user is not signed in, the
- * handoff falls back to this browser so the flow still works; `storage` on the
- * returned value says which path was used.
+ * Storage is the board-scoped `session_handoffs` table, keyed by the internal
+ * Supabase board_id resolved from the Excalidraw roomId.
+ *
+ * Saving fails closed: on a collaborative board (a board_id exists), a failed
+ * Supabase write throws rather than quietly writing a browser-local copy, so the
+ * UI never reports a handoff as saved when collaborators cannot see it. The
+ * browser-local path is used only when there is no board_id at all - signed out,
+ * or not in a collaborative session - and `storage` says which path was used.
  */
 
 export interface SessionHandoff {
@@ -95,33 +98,34 @@ export const saveSessionHandoff = async (
 ): Promise<SessionHandoff> => {
   const updatedAt = new Date().toISOString();
 
+  // Collaborative board: the handoff must reach collaborators, so any failure
+  // is surfaced instead of being downgraded to a browser-local copy.
   if (boardId) {
-    try {
-      const { data: auth } = await supabase.auth.getUser();
-      const userId = auth.user?.id;
+    const { data: auth } = await supabase.auth.getUser();
+    const userId = auth.user?.id;
 
-      if (userId) {
-        const { error } = await supabase.from("session_handoffs").upsert(
-          {
-            board_id: boardId,
-            left_off: draft.leftOff,
-            whats_next: draft.whatsNext,
-            owner_name: draft.ownerName,
-            updated_by: userId,
-            updated_by_name: updatedByName,
-            updated_at: updatedAt,
-          },
-          { onConflict: "board_id" },
-        );
-
-        if (!error) {
-          return { ...draft, updatedAt, updatedByName, storage: "supabase" };
-        }
-        console.warn("Could not save handoff to Supabase:", error.message);
-      }
-    } catch (error) {
-      console.warn("Handoff save failed:", error);
+    if (!userId) {
+      throw new Error("Cannot save a shared handoff while signed out.");
     }
+
+    const { error } = await supabase.from("session_handoffs").upsert(
+      {
+        board_id: boardId,
+        left_off: draft.leftOff,
+        whats_next: draft.whatsNext,
+        owner_name: draft.ownerName,
+        updated_by: userId,
+        updated_by_name: updatedByName,
+        updated_at: updatedAt,
+      },
+      { onConflict: "board_id" },
+    );
+
+    if (error) {
+      throw new Error(`Could not save shared handoff: ${error.message}`);
+    }
+
+    return { ...draft, updatedAt, updatedByName, storage: "supabase" };
   }
 
   return writeLocal(roomId, {
