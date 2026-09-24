@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAtomValue } from "../../app-jotai";
-import { currentBoardIdAtom, displayNameAtom } from "../../auth/atoms";
+import {
+  currentBoardIdAtom,
+  displayNameAtom,
+  isAuthenticatedAtom,
+} from "../../auth/atoms";
 import { getExcalidrawRoomId } from "../../data/boardContext";
 import {
   loadSessionHandoff,
@@ -32,6 +36,7 @@ export const SessionHandoff = () => {
   );
 
   const boardId = useAtomValue(currentBoardIdAtom);
+  const isAuthenticated = useAtomValue(isAuthenticatedAtom);
   const displayName = useAtomValue(displayNameAtom);
   const autoOpenedFor = useRef<string | null>(null);
 
@@ -42,6 +47,15 @@ export const SessionHandoff = () => {
   // moment the PRD describes.
   useEffect(() => {
     let cancelled = false;
+
+    // Signing out must clear whatever the previous user loaded, so a shared
+    // machine never shows the last session's handoff to the next person.
+    if (!isAuthenticated) {
+      setSaved(null);
+      setDraft(EMPTY);
+      autoOpenedFor.current = null;
+      return;
+    }
 
     const load = async () => {
       const handoff = await loadSessionHandoff(boardId, roomId);
@@ -71,7 +85,7 @@ export const SessionHandoff = () => {
     return () => {
       cancelled = true;
     };
-  }, [boardId, roomId]);
+  }, [boardId, roomId, isAuthenticated]);
 
   const handleSave = useCallback(async () => {
     setStatus("saving");
