@@ -88,6 +88,8 @@ import {
   appJotaiStore,
 } from "./app-jotai";
 import { AuthProvider, UserAuthButton } from "./auth";
+import { currentBoardIdAtom, supabaseUserAtom } from "./auth/atoms";
+import { HistoryPanel } from "./components/HistoryPanel";
 import { SessionHandoff } from "./components/SessionHandoff";
 import { TeamNotes } from "./components/TeamNotes";
 import { PersonalNotes } from "./components/PersonalNotes";
@@ -97,6 +99,8 @@ import {
   loadElementAuthorships,
 } from "./data/elementAuthorship";
 import { computeAuthorshipCandidates } from "./data/authorshipDecision";
+import { HistoryTracker } from "./data/historyTracker";
+import { saveHistoryEvents } from "./data/historyEvents";
 import {
   FIREBASE_STORAGE_PREFIXES,
   isExcalidrawPlusSignedUser,
@@ -424,6 +428,26 @@ const ExcalidrawWrapper = () => {
   });
   const collabError = useAtomValue(collabErrorIndicatorAtom);
   const userToFollow = useAtomValue(userToFollowAtom);
+  const historyBoardId = useAtomValue(currentBoardIdAtom);
+  const historyActorId = useAtomValue(supabaseUserAtom)?.id ?? null;
+  const historyTrackerRef = useRef<HistoryTracker | null>(null);
+
+  // (Re)create the tracker whenever the board or actor changes.
+  useEffect(() => {
+    const tracker = new HistoryTracker((events) => {
+      if (!historyBoardId || !historyActorId) {
+        return;
+      }
+      saveHistoryEvents(historyBoardId, historyActorId, events).catch(() => {
+        // History persistence must never break the active board session.
+      });
+    });
+    historyTrackerRef.current = tracker;
+    return () => {
+      tracker.destroy();
+      historyTrackerRef.current = null;
+    };
+  }, [historyBoardId, historyActorId]);
 
   const viewportStatusFrame = useMemo(
     () =>
@@ -779,6 +803,13 @@ const ExcalidrawWrapper = () => {
       }
     }
 
+    // Feed history tracking; failures there must not affect the board.
+    try {
+      historyTrackerRef.current?.process(elements);
+    } catch {
+      // ignore
+    }
+
     // this check is redundant, but since this is a hot path, it's best
     // not to evaludate the nested expression every time
     if (!LocalData.isSavePaused()) {
@@ -1011,6 +1042,9 @@ const ExcalidrawWrapper = () => {
         initialData={initialStatePromiseRef.current.promise}
         isCollaborating={isCollaborating}
         onPointerUpdate={collabAPI?.onPointerUpdate}
+        onPointerUp={() => {
+          historyTrackerRef.current?.pointerUp();
+        }}
         UIOptions={{
           canvasActions: {
             toggleTheme: true,
@@ -1073,10 +1107,11 @@ const ExcalidrawWrapper = () => {
                   editorInterface={editorInterface}
                 />
               )}
-             <UserAuthButton />
-             <SessionHandoff />
-             <TeamNotes />
+              <UserAuthButton />
+              <SessionHandoff />
+              <TeamNotes />
               <PersonalNotes />
+              <HistoryPanel />
             </div>
           );
         }}
