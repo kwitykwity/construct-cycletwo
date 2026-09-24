@@ -217,7 +217,14 @@ class Collab extends PureComponent<CollabProps, CollabState> {
     window.addEventListener("online", this.onOfflineStatusToggle);
     window.addEventListener("offline", this.onOfflineStatusToggle);
     window.addEventListener(EVENT.UNLOAD, this.onUnload);
+    const unsubOnAuthChange = appJotaiStore.sub(supabaseUserAtom, () => {
+      const user = appJotaiStore.get(supabaseUserAtom);
+      const roomId = this.portal.roomId;
 
+      if (user && roomId && !appJotaiStore.get(currentBoardIdAtom)) {
+        void this.resolveBoardForAuthenticatedUser(roomId);
+      }
+    });
     const unsubOnUserFollow = this.excalidrawAPI.onUserFollow((payload) => {
       this.setUserToFollow(
         payload.action === "FOLLOW" ? payload.userToFollow : null,
@@ -230,6 +237,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
       throttledRelayUserViewportBounds(),
     );
     this.onUmmount = () => {
+      unsubOnAuthChange();
       unsubOnUserFollow();
       unsubOnScrollChange();
     };
@@ -480,7 +488,29 @@ class Collab extends PureComponent<CollabProps, CollabState> {
   };
 
   private fallbackInitializationHandler: null | (() => any) = null;
+  private resolveBoardForAuthenticatedUser = async (roomId: string) => {
+    const user = appJotaiStore.get(supabaseUserAtom);
 
+    if (!user) {
+      return;
+    }
+
+    try {
+      // Security boundary: only roomId is sent to Supabase.
+      // roomKey must never leave the client.
+      const boardId = await getBoardIdForRoom(roomId);
+
+      // Do not apply a stale result if collaboration changed while awaiting.
+      if (
+        this.portal.roomId === roomId &&
+        appJotaiStore.get(supabaseUserAtom)?.id === user.id
+      ) {
+        appJotaiStore.set(currentBoardIdAtom, boardId);
+      }
+    } catch (error) {
+      console.warn("Could not resolve board:", error);
+    }
+  };
   startCollaboration = async (
     existingRoomLinkData: null | { roomId: string; roomKey: string },
   ) => {
@@ -508,26 +538,10 @@ class Collab extends PureComponent<CollabProps, CollabState> {
         getCollaborationLink({ roomId, roomKey }),
       );
     }
-
-    // Resolve internal Supabase board_id for authenticated features
-    // (Authorship, History, Personal Notes, Team Notes)
-    // Security boundary: only authenticated users may resolve boards
-    const user = appJotaiStore.get(supabaseUserAtom);
-    if (user) {
-      try {
-        // Note: only roomId is sent to Supabase — roomKey never leaves client
-        const boardId = await getBoardIdForRoom(roomId);
-        appJotaiStore.set(currentBoardIdAtom, boardId);
-      } catch (error) {
-        // Board resolution failed — authenticated features unavailable
-        console.warn("Could not resolve board:", error);
-        appJotaiStore.set(currentBoardIdAtom, null);
-      }
-    } else {
-      // Unauthenticated — skip board resolution, authenticated features disabled
-      appJotaiStore.set(currentBoardIdAtom, null);
-    }
-
+    // Resolve internal Supabase board_id if auth is already available.
+    // If auth is still restoring, the auth subscription will retry this.
+    await this.resolveBoardForAuthenticatedUser(roomId);
+  
     // TODO: `ImportedDataState` type here seems abused
     const scenePromise = resolvablePromise<
       | (ImportedDataState & { elements: readonly OrderedExcalidrawElement[] })
