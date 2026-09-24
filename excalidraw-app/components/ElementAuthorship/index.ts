@@ -1,0 +1,1 @@
+export { AuthorshipTooltip } from "./AuthorshipTooltip";

@@ -125,6 +125,7 @@ export interface CollabAPI {
   fetchImageFilesFromFirebase: CollabInstance["fetchImageFilesFromFirebase"];
   setUsername: CollabInstance["setUsername"];
   getUsername: CollabInstance["getUsername"];
+  getRemoteReceivedElementIds: CollabInstance["getRemoteReceivedElementIds"];
   getActiveRoomLink: CollabInstance["getActiveRoomLink"];
   setCollabError: CollabInstance["setErrorDialog"];
   setUserToFollow: CollabInstance["setUserToFollow"];
@@ -143,6 +144,9 @@ class Collab extends PureComponent<CollabProps, CollabState> {
 
   private socketInitializationTimer?: number;
   private lastBroadcastedOrReceivedSceneVersion: number = -1;
+  /** element ids that arrived via remote scene updates — the local user must
+   *  never be recorded as their creator (collaborative authorship safety) */
+  private remoteReceivedElementIds = new Set<string>();
   private collaborators = new Map<SocketId, Collaborator>();
   /** the socket ids of the users following the current user */
   private followedBy = new Set<SocketId>();
@@ -253,6 +257,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
       stopCollaboration: this.stopCollaboration,
       setUsername: this.setUsername,
       getUsername: this.getUsername,
+      getRemoteReceivedElementIds: this.getRemoteReceivedElementIds,
       getActiveRoomLink: this.getActiveRoomLink,
       setCollabError: this.setErrorDialog,
       setUserToFollow: this.setUserToFollow,
@@ -373,6 +378,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
   };
 
   stopCollaboration = (keepRemoteState = true) => {
+    this.remoteReceivedElementIds.clear();
     this.queueBroadcastAllElements.cancel();
     this.queueSaveToFirebase.cancel();
     this.loadImageFiles.cancel();
@@ -845,6 +851,21 @@ class Collab extends PureComponent<CollabProps, CollabState> {
   private handleRemoteSceneUpdate = (
     elements: ReconciledExcalidrawElement[],
   ) => {
+    // Record the ids of every element that is NEW to this client and arrived
+    // via a remote scene update, so the receiving client's authorship logic can
+    // distinguish remote-originated elements from locally-created ones. Only ids
+    // absent from the current local scene are remote-originated — elements the
+    // local user is actively creating are already in the scene and must keep
+    // their local authorship.
+    const currentIds = new Set(
+      this.getSceneElementsIncludingDeleted().map((el) => el.id),
+    );
+    for (const element of elements) {
+      if (!currentIds.has(element.id)) {
+        this.remoteReceivedElementIds.add(element.id);
+      }
+    }
+
     this.excalidrawAPI.updateScene({
       elements,
       captureUpdate: CaptureUpdateAction.NEVER,
@@ -852,6 +873,9 @@ class Collab extends PureComponent<CollabProps, CollabState> {
 
     this.loadImageFiles();
   };
+
+  /** ids of elements that arrived via remote scene updates */
+  public getRemoteReceivedElementIds = () => this.remoteReceivedElementIds;
 
   private onPointerMove = () => {
     if (this.idleTimeoutId) {
