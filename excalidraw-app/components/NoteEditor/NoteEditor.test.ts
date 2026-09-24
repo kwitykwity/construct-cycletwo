@@ -13,9 +13,9 @@ describe("NoteEditor", () => {
 
     it("strips img tags with onerror handlers", () => {
       expect(sanitizeHtml('<img src="x" onerror="alert(1)">')).toBe("");
-      expect(
-        sanitizeHtml('Before<img src="x" onerror="alert(1)">After'),
-      ).toBe("BeforeAfter");
+      expect(sanitizeHtml('Before<img src="x" onerror="alert(1)">After')).toBe(
+        "BeforeAfter",
+      );
     });
 
     it("strips event handlers from all elements", () => {
@@ -53,9 +53,9 @@ describe("NoteEditor", () => {
     });
 
     it("strips inline styles", () => {
-      expect(
-        sanitizeHtml('<div style="background:url(evil)">Text</div>'),
-      ).toBe("Text");
+      expect(sanitizeHtml('<div style="background:url(evil)">Text</div>')).toBe(
+        "Text",
+      );
     });
   });
 
@@ -96,7 +96,7 @@ describe("NoteEditor", () => {
   describe("sanitizeHtml - Complex Payloads", () => {
     it("handles nested malicious content", () => {
       expect(
-        sanitizeHtml('<div><script>alert(1)</script><b>Safe</b></div>'),
+        sanitizeHtml("<div><script>alert(1)</script><b>Safe</b></div>"),
       ).toBe("<b>Safe</b>");
     });
 
@@ -111,8 +111,15 @@ describe("NoteEditor", () => {
       expect(sanitizeHtml(input)).toBe("<b>Bold</b>Text");
     });
 
-    it("handles encoded entities in text", () => {
-      expect(sanitizeHtml("&lt;script&gt;")).toBe("<script>");
+    it("keeps encoded entities encoded so text never becomes live markup", () => {
+      // Sanitized output is assigned to innerHTML, so un-escaping here would
+      // turn text that merely looks like markup into real elements. Notably
+      // "&lt;img src=x onerror=...&gt;" would become a live img with a handler
+      // in every reader's browser once a Team Note is shared.
+      expect(sanitizeHtml("&lt;script&gt;")).toBe("&lt;script&gt;");
+      expect(sanitizeHtml("&lt;img src=x onerror=alert(1)&gt;")).toBe(
+        "&lt;img src=x onerror=alert(1)&gt;",
+      );
     });
   });
 });

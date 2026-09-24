@@ -66,24 +66,34 @@ const DANGEROUS_TAGS = new Set([
 ]);
 
 /**
- * Sanitize HTML content to only allow bold tags
+ * Tags kept during sanitization. They are re-emitted WITHOUT attributes, so
+ * styles, classes and event handlers never survive. <br> is kept because the
+ * browser inserts it while editing (notably around Backspace); stripping it
+ * forced a DOM rewrite on those keystrokes, which is what reset the caret.
+ */
+const ALLOWED_TAGS = new Set(["b", "strong", "br"]);
+
+const escapeHtml = (text: string): string =>
+  text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+/**
+ * Sanitize HTML content to bold plus plain structure
  * Per PRD: Bold formatting only, no other rich-text features
- * SECURITY: This function strips all dangerous HTML including scripts, event handlers, etc.
+ * SECURITY: strips scripts, event handlers, styles and all attributes.
+ * Text is escaped, so content that merely looks like markup stays text.
  */
 export function sanitizeHtml(html: string): string {
-  // Create a temporary element to parse HTML
-  const temp = document.createElement("div");
-  temp.innerHTML = html;
+  // <template> parses inertly: images/iframes inside never load while sanitizing
+  const template = document.createElement("template");
+  template.innerHTML = html;
 
-  // Walk the DOM and keep only text and <b>/<strong> tags
   const sanitize = (node: Node): string => {
     if (node.nodeType === Node.TEXT_NODE) {
-      return node.textContent || "";
+      return escapeHtml(node.textContent || "");
     }
 
     if (node.nodeType === Node.ELEMENT_NODE) {
-      const element = node as Element;
-      const tagName = element.tagName.toLowerCase();
+      const tagName = (node as Element).tagName.toLowerCase();
 
       // Skip dangerous elements entirely (including their content)
       if (DANGEROUS_TAGS.has(tagName)) {
@@ -92,19 +102,24 @@ export function sanitizeHtml(html: string): string {
 
       const childContent = Array.from(node.childNodes).map(sanitize).join("");
 
-      // Keep bold tags
-      if (tagName === "b" || tagName === "strong") {
-        return `<b>${childContent}</b>`;
+      if (tagName === "br") {
+        return "<br>";
       }
 
-      // For all other elements, just return their text content
+      if (ALLOWED_TAGS.has(tagName)) {
+        return tagName === "strong"
+          ? `<b>${childContent}</b>`
+          : `<${tagName}>${childContent}</${tagName}>`;
+      }
+
+      // For all other elements, keep only their text content
       return childContent;
     }
 
     return "";
   };
 
-  return Array.from(temp.childNodes).map(sanitize).join("");
+  return Array.from(template.content.childNodes).map(sanitize).join("");
 }
 
 /**
@@ -131,19 +146,6 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(
     const editorRef = useRef<HTMLDivElement>(null);
     const lastValueRef = useRef(value);
 
-    // Expose methods via ref
-    useImperativeHandle(ref, () => ({
-      focus: () => {
-        editorRef.current?.focus();
-      },
-      toggleBold: () => {
-        document.execCommand("bold", false);
-      },
-      isBold: () => {
-        return document.queryCommandState("bold");
-      },
-    }));
-
     // Sync external value changes to contenteditable
     // SECURITY: Always sanitize external content (e.g., Team Notes from other users)
     useEffect(() => {
@@ -169,17 +171,48 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(
     // Handle input changes
     // SECURITY: Sanitize before save to ensure only safe HTML is stored
     const handleInput = useCallback(() => {
-      if (editorRef.current) {
-        const rawHtml = editorRef.current.innerHTML;
-        const sanitizedHtml = sanitizeHtml(rawHtml);
-        // Update DOM if sanitization changed content (removes malicious tags)
-        if (rawHtml !== sanitizedHtml) {
-          editorRef.current.innerHTML = sanitizedHtml;
-        }
-        lastValueRef.current = sanitizedHtml;
-        onChange(sanitizedHtml);
+      if (!editorRef.current) {
+        return;
       }
+
+      const rawHtml = editorRef.current.innerHTML;
+      const sanitizedHtml = sanitizeHtml(rawHtml);
+
+      // Only touch the DOM when sanitizing actually removed something.
+      // Rewriting innerHTML destroys the selection, which is what was sending
+      // the caret back to the start mid-typing and around Backspace.
+      if (rawHtml !== sanitizedHtml) {
+        editorRef.current.innerHTML = sanitizedHtml;
+        const range = document.createRange();
+        range.selectNodeContents(editorRef.current);
+        range.collapse(false);
+        const selection = window.getSelection();
+        selection?.removeAllRanges();
+        selection?.addRange(range);
+      }
+
+      lastValueRef.current = sanitizedHtml;
+      onChange(sanitizedHtml);
     }, [onChange]);
+
+    // Expose methods via ref
+    useImperativeHandle(
+      ref,
+      () => ({
+        focus: () => {
+          editorRef.current?.focus();
+        },
+        toggleBold: () => {
+          document.execCommand("bold", false);
+          // Toolbar bold must reach the parent too, not wait for a keystroke
+          handleInput();
+        },
+        isBold: () => {
+          return document.queryCommandState("bold");
+        },
+      }),
+      [handleInput],
+    );
 
     // Handle keyboard shortcuts
     // IMPORTANT: Stop propagation to prevent canvas from receiving keyboard events
