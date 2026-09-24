@@ -87,8 +87,14 @@ import {
   useAtomWithInitialValue,
   appJotaiStore,
 } from "./app-jotai";
+import { supabaseUserAtom, currentBoardIdAtom } from "./auth";
 import { AuthProvider, UserAuthButton } from "./auth";
 import { SessionHandoff } from "./components/SessionHandoff";
+import { AuthorshipTooltip } from "./components/ElementAuthorship";
+import {
+  saveElementAuthorshipBatch,
+  loadElementAuthorships,
+} from "./data/elementAuthorship";
 import {
   FIREBASE_STORAGE_PREFIXES,
   isExcalidrawPlusSignedUser,
@@ -385,6 +391,17 @@ const ExcalidrawWrapper = () => {
   const [langCode, setLangCode] = useAppLangCode();
 
   const editorInterface = useEditorInterface();
+
+  // Element Authorship: track which element IDs we've already seen
+  // so we only persist authorship for genuinely new elements
+  const knownElementIdsRef = useRef<Set<string> | null>(null);
+  const authUser = useAtomValue(supabaseUserAtom);
+  const authBoardId = useAtomValue(currentBoardIdAtom);
+
+  // Reset element tracking when board changes (user joins different board)
+  useEffect(() => {
+    knownElementIdsRef.current = null;
+  }, [authBoardId]);
 
   // initial state
   // ---------------------------------------------------------------------------
@@ -723,6 +740,52 @@ const ExcalidrawWrapper = () => {
       collabAPI.syncElements(elements);
     }
 
+    // Element Authorship: detect new persistent elements and persist authorship
+    // PRD 5.1: On successful creation, record element ID, board, creator UUID, timestamp
+    // PRD 5.6: Persistence failure must not break the element
+    if (authUser && authBoardId) {
+      const currentIds = new Set(
+        elements.filter((el) => !el.isDeleted).map((el) => el.id),
+      );
+
+      if (knownElementIdsRef.current === null) {
+        // First onChange call: this is the initial scene load.
+        // Do NOT persist authorship for existing/imported elements (PRD 5.7).
+        // But do load existing authorship records from Supabase so the cache is warm.
+        knownElementIdsRef.current = currentIds;
+        const elementIds = Array.from(currentIds);
+        if (elementIds.length > 0) {
+          loadElementAuthorships(authBoardId, elementIds).catch(() => {
+            // Silently fail — authorship load failure doesn't affect the board
+          });
+        }
+      } else {
+        // Find new element IDs that weren't in the previous scene
+        const newElementIds: string[] = [];
+        for (const id of currentIds) {
+          if (!knownElementIdsRef.current.has(id)) {
+            newElementIds.push(id);
+          }
+        }
+
+        if (newElementIds.length > 0) {
+          // Persist authorship for each new element
+          // Don't await — fire and forget so drawing isn't blocked
+          saveElementAuthorshipBatch(
+            authBoardId,
+            newElementIds.map((elementId) => ({
+              elementId,
+              createdBy: authUser.id,
+            })),
+          ).catch(() => {
+            // Silently fail per PRD 5.6
+          });
+        }
+
+        knownElementIdsRef.current = currentIds;
+      }
+    }
+
     // this check is redundant, but since this is a hot path, it's best
     // not to evaludate the nested expression every time
     if (!LocalData.isSavePaused()) {
@@ -954,7 +1017,39 @@ const ExcalidrawWrapper = () => {
         onExport={onExport}
         initialData={initialStatePromiseRef.current.promise}
         isCollaborating={isCollaborating}
-        onPointerUpdate={collabAPI?.onPointerUpdate}
+        onPointerUpdate={(payload) => {
+          collabAPI?.onPointerUpdate(payload);
+
+          // Element Authorship: hit-test on hover for tooltip display
+          if (payload.button === "up" && excalidrawAPI) {
+            const elements = excalidrawAPI.getSceneElements();
+            const px = payload.pointer.x;
+            const py = payload.pointer.y;
+
+            // Find topmost non-deleted element at pointer
+            let hitId: string | null = null;
+            for (let i = elements.length - 1; i >= 0; i--) {
+              const el = elements[i];
+              if (el.isDeleted) {
+                continue;
+              }
+              if (
+                px >= el.x &&
+                px <= el.x + el.width &&
+                py >= el.y &&
+                py <= el.y + el.height
+              ) {
+                hitId = el.id;
+                break;
+              }
+            }
+
+            const handler = (excalidrawAPI as any).__authorshipHover;
+            if (handler) {
+              handler(hitId, px, py);
+            }
+          }
+        }}
         UIOptions={{
           canvasActions: {
             toggleTheme: true,
@@ -1017,8 +1112,8 @@ const ExcalidrawWrapper = () => {
                   editorInterface={editorInterface}
                 />
               )}
-             <UserAuthButton />
-             <SessionHandoff />
+              <UserAuthButton />
+              <SessionHandoff />
             </div>
           );
         }}
@@ -1044,6 +1139,7 @@ const ExcalidrawWrapper = () => {
           onCollabDialogOpen={onCollabDialogOpen}
           isCollabEnabled={!isCollabDisabled}
         />
+        <AuthorshipTooltip excalidrawAPI={excalidrawAPI} />
         <OverwriteConfirmDialog>
           <OverwriteConfirmDialog.Actions.ExportToImage />
           <OverwriteConfirmDialog.Actions.SaveToDisk />
