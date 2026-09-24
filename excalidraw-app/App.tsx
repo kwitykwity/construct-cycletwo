@@ -90,6 +90,7 @@ import {
 import { AuthProvider, UserAuthButton } from "./auth";
 import { SessionHandoff } from "./components/SessionHandoff";
 import { TeamNotes } from "./components/TeamNotes";
+import { PersonalNotes } from "./components/PersonalNotes";
 import {
   FIREBASE_STORAGE_PREFIXES,
   isExcalidrawPlusSignedUser,
@@ -1021,6 +1022,7 @@ const ExcalidrawWrapper = () => {
              <UserAuthButton />
              <SessionHandoff />
              <TeamNotes />
+              <PersonalNotes />
             </div>
           );
         }}
