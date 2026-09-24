@@ -91,6 +91,12 @@ import { AuthProvider, UserAuthButton } from "./auth";
 import { SessionHandoff } from "./components/SessionHandoff";
 import { TeamNotes } from "./components/TeamNotes";
 import { PersonalNotes } from "./components/PersonalNotes";
+import { AuthorshipTooltip } from "./components/ElementAuthorship";
+import {
+  saveElementAuthorshipBatch,
+  loadElementAuthorships,
+} from "./data/elementAuthorship";
+import { computeAuthorshipCandidates } from "./data/authorshipDecision";
 import {
   FIREBASE_STORAGE_PREFIXES,
   isExcalidrawPlusSignedUser,
@@ -154,6 +160,8 @@ import { ExcalidrawPlusPromoBanner } from "./components/ExcalidrawPlusPromoBanne
 import { AppSidebar } from "./components/AppSidebar";
 
 import type { CollabAPI } from "./collab/Collab";
+
+const EMPTY_ID_SET: ReadonlySet<string> = new Set();
 
 polyfill();
 
@@ -723,6 +731,52 @@ const ExcalidrawWrapper = () => {
   ) => {
     if (collabAPI?.isCollaborating()) {
       collabAPI.syncElements(elements);
+    }
+
+    // Element Authorship: detect NEW locally-created elements and persist
+    // authorship. Elements that arrived via remote collab scene updates are
+    // never attributed to the receiving user (PRD 5.1, collaborative safety).
+    // PRD 5.6: Persistence failure must not break the element.
+    if (authUser && authBoardId) {
+      const currentIds = new Set(
+        elements.filter((el) => !el.isDeleted).map((el) => el.id),
+      );
+
+      const { isInitialBaseline, candidateElementIds } =
+        computeAuthorshipCandidates(
+          currentIds,
+          knownElementIdsRef.current,
+          collabAPI?.getRemoteReceivedElementIds() ?? EMPTY_ID_SET,
+        );
+
+      if (isInitialBaseline) {
+        // First onChange call: this is the initial scene load.
+        // Do NOT persist authorship for existing/imported elements (PRD 5.7).
+        // But do load existing authorship records from Supabase so the cache is warm.
+        knownElementIdsRef.current = currentIds;
+        const elementIds = Array.from(currentIds);
+        if (elementIds.length > 0) {
+          loadElementAuthorships(authBoardId, elementIds).catch(() => {
+            // Silently fail — authorship load failure doesn't affect the board
+          });
+        }
+      } else {
+        if (candidateElementIds.length > 0) {
+          // Persist authorship for each locally-created element.
+          // Don't await — fire and forget so drawing isn't blocked.
+          saveElementAuthorshipBatch(
+            authBoardId,
+            candidateElementIds.map((elementId) => ({
+              elementId,
+              createdBy: authUser.id,
+            })),
+          ).catch(() => {
+            // Silently fail per PRD 5.6
+          });
+        }
+
+        knownElementIdsRef.current = currentIds;
+      }
     }
 
     // this check is redundant, but since this is a hot path, it's best
