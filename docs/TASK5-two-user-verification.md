@@ -27,10 +27,10 @@ Checks 6, 8 and 9 return **HTTP 200 with an empty body**, not an error. PostgRES
 
 This is the cause of the Task 7 failure "User A cannot modify User B's profile", now reproduced with two real users: the policy is working.
 
-## Not covered
+## Not covered (as of the first run)
 
-- **Session Handoff two-user sharing.** Blocked: the `session_handoffs` table has not been applied (`PGRST205 - Could not find the table`). Until then the handoff falls back to browser-local storage, so User B cannot see User A's handoff. The UI is built and ready; this becomes a 5-minute re-test once the migration lands.
-- **Signed-out handoff visibility.** With the browser fallback, a locally saved handoff survives sign-out on that machine. Applying the table removes this.
+- **Session Handoff two-user sharing.** Blocked at the time of this run: the `session_handoffs` table had not yet been applied. **Superseded** - migration 004 was applied later the same day and the two-user handoff verification below was run against it.
+- **Signed-out handoff visibility.** Also superseded: with the table applied, a signed-in save goes to Supabase, and the panel now clears on sign-out.
 
 ## Test data left behind
 
@@ -41,8 +41,7 @@ This is the cause of the Task 7 failure "User A cannot modify User B's profile",
 
 ## Session Handoff two-user verification (after migration 004 applied)
 
-Re-run once `session_handoffs` existed in production. Browser-local handoff copies
-were deleted first, so anything displayed had to come from the server.
+Re-run once `session_handoffs` existed in production. Browser-local handoff copies were deleted first, so anything displayed had to come from the server.
 
 | # | Check | Result |
 | --- | --- | --- |
@@ -57,14 +56,37 @@ were deleted first, so anything displayed had to come from the server.
 
 ### Fix made during this run
 
-Signing out left the previous user's handoff visible in the panel: stale client
-state, not a server-side leak (the API rejects signed-out reads, check 19). The
-panel now clears its contents when the user is not authenticated, so a shared
-machine cannot show the last session's handoff to the next person.
+Signing out left the previous user's handoff visible in the panel: stale client state, not a server-side leak (the API rejects signed-out reads, check 19). The panel now clears its contents when the user is not authenticated, so a shared machine cannot show the last session's handoff to the next person.
 
 ### Known limitation
 
-Switching boards by editing the room hash **without reloading** leaves the previous
-board's handoff on screen until the page reloads. On a normal load of a different
-board the panel is correctly empty (check 17). Worth a `hashchange` listener if
-in-place board switching is expected.
+Switching boards by editing the room hash **without reloading** leaves the previous board's handoff on screen until the page reloads. On a normal load of a different board the panel is correctly empty (check 17). Worth a `hashchange` listener if in-place board switching is expected.
+
+---
+
+## Fail-closed saving (review follow-up)
+
+Review found that a failed Supabase write on a collaborative board fell back to a browser-local copy and still reported success, so the UI could show "saved" for a handoff collaborators could not see.
+
+`saveSessionHandoff` now fails closed: when a board_id exists, a failed write (or a missing session) throws, and the panel shows its existing "Could not save. Try again." state. The browser-local path is used only when there is no board_id at all - signed out, or not in a collaborative session.
+
+| Check | Result |
+| --- | --- |
+| Save on a collaborative board still writes to Supabase | Pass |
+| Failed shared write surfaces an error instead of saving locally | Pass - rejected write throws; panel shows "Could not save. Try again." and no local copy is written |
+| Local path still used when there is no board (signed out / no room) | Pass |
+
+### Intermittent issue found while re-verifying (not in Session Handoff code)
+
+On one page load out of three, User B opened the shared board while signed in and
+the handoff panel stayed empty, even though the row was readable by that user via
+the API. Cause appears to be a race in board resolution: `Collab.startCollaboration`
+reads `supabaseUserAtom` when joining the room, but session restoration is
+asynchronous, so a slow restore leaves the user null at that moment, board
+resolution is skipped, and `currentBoardIdAtom` stays null for the session. Two
+subsequent reloads worked.
+
+This affects the core returning-collaborator flow (a returning user can open the
+board and see nothing) and lives in the board resolution integration, not in the
+Session Handoff feature. Suggested fix, for whoever owns that code: re-resolve the
+board when authentication completes, rather than only at join time.
