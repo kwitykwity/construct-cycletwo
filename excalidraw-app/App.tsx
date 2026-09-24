@@ -95,6 +95,7 @@ import {
   saveElementAuthorshipBatch,
   loadElementAuthorships,
 } from "./data/elementAuthorship";
+import { computeAuthorshipCandidates } from "./data/authorshipDecision";
 import {
   FIREBASE_STORAGE_PREFIXES,
   isExcalidrawPlusSignedUser,
@@ -158,6 +159,8 @@ import { ExcalidrawPlusPromoBanner } from "./components/ExcalidrawPlusPromoBanne
 import { AppSidebar } from "./components/AppSidebar";
 
 import type { CollabAPI } from "./collab/Collab";
+
+const EMPTY_ID_SET: ReadonlySet<string> = new Set();
 
 polyfill();
 
@@ -740,15 +743,23 @@ const ExcalidrawWrapper = () => {
       collabAPI.syncElements(elements);
     }
 
-    // Element Authorship: detect new persistent elements and persist authorship
-    // PRD 5.1: On successful creation, record element ID, board, creator UUID, timestamp
-    // PRD 5.6: Persistence failure must not break the element
+    // Element Authorship: detect NEW locally-created elements and persist
+    // authorship. Elements that arrived via remote collab scene updates are
+    // never attributed to the receiving user (PRD 5.1, collaborative safety).
+    // PRD 5.6: Persistence failure must not break the element.
     if (authUser && authBoardId) {
       const currentIds = new Set(
         elements.filter((el) => !el.isDeleted).map((el) => el.id),
       );
 
-      if (knownElementIdsRef.current === null) {
+      const { isInitialBaseline, candidateElementIds } =
+        computeAuthorshipCandidates(
+          currentIds,
+          knownElementIdsRef.current,
+          collabAPI?.getRemoteReceivedElementIds() ?? EMPTY_ID_SET,
+        );
+
+      if (isInitialBaseline) {
         // First onChange call: this is the initial scene load.
         // Do NOT persist authorship for existing/imported elements (PRD 5.7).
         // But do load existing authorship records from Supabase so the cache is warm.
@@ -760,20 +771,12 @@ const ExcalidrawWrapper = () => {
           });
         }
       } else {
-        // Find new element IDs that weren't in the previous scene
-        const newElementIds: string[] = [];
-        for (const id of currentIds) {
-          if (!knownElementIdsRef.current.has(id)) {
-            newElementIds.push(id);
-          }
-        }
-
-        if (newElementIds.length > 0) {
-          // Persist authorship for each new element
-          // Don't await — fire and forget so drawing isn't blocked
+        if (candidateElementIds.length > 0) {
+          // Persist authorship for each locally-created element.
+          // Don't await — fire and forget so drawing isn't blocked.
           saveElementAuthorshipBatch(
             authBoardId,
-            newElementIds.map((elementId) => ({
+            candidateElementIds.map((elementId) => ({
               elementId,
               createdBy: authUser.id,
             })),
