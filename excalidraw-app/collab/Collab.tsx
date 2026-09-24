@@ -538,9 +538,7 @@ class Collab extends PureComponent<CollabProps, CollabState> {
         getCollaborationLink({ roomId, roomKey }),
       );
     }
-    // Resolve internal Supabase board_id if auth is already available.
-    // If auth is still restoring, the auth subscription will retry this.
-    await this.resolveBoardForAuthenticatedUser(roomId);
+ 
   
     // TODO: `ImportedDataState` type here seems abused
     const scenePromise = resolvablePromise<
@@ -573,7 +571,8 @@ class Collab extends PureComponent<CollabProps, CollabState> {
         roomId,
         roomKey,
       );
-
+      // Resolve only after portal.open() has set the active roomId.
+      await this.resolveBoardForAuthenticatedUser(roomId);
       this.portal.socket.once("connect_error", fallbackInitializationHandler);
     } catch (error: any) {
       console.error(error);
