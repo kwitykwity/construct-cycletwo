@@ -87,6 +87,7 @@ import {
   useAtomWithInitialValue,
   appJotaiStore,
 } from "./app-jotai";
+import { supabaseUserAtom, currentBoardIdAtom } from "./auth";
 import { AuthProvider, UserAuthButton } from "./auth";
 import { SessionHandoff } from "./components/SessionHandoff";
 import { TeamNotes } from "./components/TeamNotes";
@@ -395,6 +396,17 @@ const ExcalidrawWrapper = () => {
   const [langCode, setLangCode] = useAppLangCode();
 
   const editorInterface = useEditorInterface();
+
+  // Element Authorship: track which element IDs we've already seen
+  // so we only persist authorship for genuinely new elements
+  const knownElementIdsRef = useRef<Set<string> | null>(null);
+  const authUser = useAtomValue(supabaseUserAtom);
+  const authBoardId = useAtomValue(currentBoardIdAtom);
+
+  // Reset element tracking when board changes
+  useEffect(() => {
+    knownElementIdsRef.current = null;
+  }, [authBoardId]);
 
   // initial state
   // ---------------------------------------------------------------------------
@@ -1010,7 +1022,39 @@ const ExcalidrawWrapper = () => {
         onExport={onExport}
         initialData={initialStatePromiseRef.current.promise}
         isCollaborating={isCollaborating}
-        onPointerUpdate={collabAPI?.onPointerUpdate}
+        onPointerUpdate={(payload) => {
+          collabAPI?.onPointerUpdate(payload);
+
+      // Element Authorship: hit-test on hover for tooltip display
+      if (payload.button === "up" && excalidrawAPI) {
+        const elements = excalidrawAPI.getSceneElements();
+        const px = payload.pointer.x;
+        const py = payload.pointer.y;
+
+        // Find topmost non-deleted element at pointer
+        let hitId: string | null = null;
+        for (let i = elements.length - 1; i >= 0; i--) {
+          const el = elements[i];
+          if (el.isDeleted) {
+            continue;
+          }
+          if (
+            px >= el.x &&
+            px <= el.x + el.width &&
+            py >= el.y &&
+            py <= el.y + el.height
+          ) {
+            hitId = el.id;
+            break;
+          }
+        }
+
+        const handler = (excalidrawAPI as any).__authorshipHover;
+        if (handler) {
+          handler(hitId, px, py );
+        }
+      }
+    }}
         UIOptions={{
           canvasActions: {
             toggleTheme: true,
@@ -1101,7 +1145,8 @@ const ExcalidrawWrapper = () => {
         <AppWelcomeScreen
           onCollabDialogOpen={onCollabDialogOpen}
           isCollabEnabled={!isCollabDisabled}
-        />
+       />
+        <AuthorshipTooltip excalidrawAPI={excalidrawAPI} />
         <OverwriteConfirmDialog>
           <OverwriteConfirmDialog.Actions.ExportToImage />
           <OverwriteConfirmDialog.Actions.SaveToDisk />
