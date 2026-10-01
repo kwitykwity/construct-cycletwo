@@ -70,6 +70,7 @@ export async function saveHistoryEvents(
   if (error) {
     throw new Error(`Could not save history events: ${error.message}`);
   }
+  window.dispatchEvent(new CustomEvent("history-events-updated"));
 }
 
 /**

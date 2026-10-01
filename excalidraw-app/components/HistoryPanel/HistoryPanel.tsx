@@ -163,6 +163,23 @@ export const HistoryPanel = () => {
     }
   }, [isOpen, load]);
 
+  // Refresh an open History panel after new events are persisted.
+useEffect(() => {
+  if (!isOpen) {
+    return;
+  }
+
+  const handleHistoryUpdated = () => {
+    load();
+  };
+
+  window.addEventListener("history-events-updated", handleHistoryUpdated);
+
+  return () => {
+    window.removeEventListener("history-events-updated", handleHistoryUpdated);
+ };
+}, [isOpen, load]);
+
   const toggleGroup = (key: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
