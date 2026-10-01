@@ -7,6 +7,7 @@ import {
   useEditorInterface,
   ExcalidrawAPIProvider,
   useExcalidrawAPI,
+  sceneCoordsToViewportCoords,
 } from "@excalidraw/excalidraw";
 import { trackEvent } from "@excalidraw/excalidraw/analytics";
 import { getDefaultAppState } from "@excalidraw/excalidraw/appState";
@@ -22,6 +23,7 @@ import Trans from "@excalidraw/excalidraw/components/Trans";
 import {
   APP_NAME,
   EVENT,
+  DEFAULT_COLLISION_THRESHOLD,
   VERSION_TIMEOUT,
   debounce,
   getVersion,
@@ -47,7 +49,7 @@ import {
   share,
   youtubeIcon,
 } from "@excalidraw/excalidraw/components/icons";
-import { isElementLink } from "@excalidraw/element";
+import { hitElementItself, isElementLink } from "@excalidraw/element";
 import {
   bumpElementVersions,
   restoreAppState,
@@ -1061,18 +1063,35 @@ const ExcalidrawWrapper = () => {
             const px = payload.pointer.x;
             const py = payload.pointer.y;
 
+            const { x: viewportX, y: viewportY } =
+  sceneCoordsToViewportCoords(
+    { sceneX: px, sceneY: py },
+    excalidrawAPI.getAppState(),
+  );
             // Find topmost non-deleted element at pointer
             let hitId: string | null = null;
+            const elementsMap =
+              excalidrawAPI.getSceneElementsMapIncludingDeleted();
+            const appState = excalidrawAPI.getAppState();
+
             for (let i = elements.length - 1; i >= 0; i--) {
               const el = elements[i];
               if (el.isDeleted) {
                 continue;
               }
+
+              const threshold = Math.max(
+                el.strokeWidth / 2 + 0.1,
+                0.85 * (DEFAULT_COLLISION_THRESHOLD / appState.zoom.value),
+              );
+
               if (
-                px >= el.x &&
-                px <= el.x + el.width &&
-                py >= el.y &&
-                py <= el.y + el.height
+                hitElementItself({
+                  point: [px, py] as any,
+                  element: el,
+                  threshold,
+                  elementsMap,
+                })
               ) {
                 hitId = el.id;
                 break;
@@ -1081,7 +1100,7 @@ const ExcalidrawWrapper = () => {
 
             const handler = (excalidrawAPI as any).__authorshipHover;
             if (handler) {
-              handler(hitId, px, py);
+              handler(hitId, viewportX, viewportY);
             }
           }
         }}
