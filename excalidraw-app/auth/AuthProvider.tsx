@@ -12,6 +12,7 @@ import {
   authErrorAtom,
   pendingRoomLinkAtom,
   showAuthDialogAtom,
+  passwordRecoveryAtom,
   type UserProfile,
 } from "./atoms";
 import { AuthDialog } from "./AuthDialog";
@@ -39,7 +40,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const setAuthError = useSetAtom(authErrorAtom);
   const setPendingRoomLink = useSetAtom(pendingRoomLinkAtom);
   const showAuthDialog = useAtomValue(showAuthDialogAtom);
-
+  const setShowAuthDialog = useSetAtom(showAuthDialogAtom);
+  const setPasswordRecovery = useSetAtom(passwordRecoveryAtom);
   /**
    * Load user profile from profiles table
    * Per PRD 4.3: Each authenticated user has first_name and last_name
@@ -148,6 +150,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         setSession(null);
         setUserProfile(null);
         setAuthError(null);
+        setPasswordRecovery(false);
+      } else if (event === "PASSWORD_RECOVERY") {
+        await handleSessionChange(session);
+        setPasswordRecovery(true);
+        setShowAuthDialog(true);
       } else if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         await handleSessionChange(session);
       }

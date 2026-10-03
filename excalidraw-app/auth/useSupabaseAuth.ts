@@ -131,6 +131,60 @@ export const useSupabaseAuth = () => {
     [setAuthError, setShowAuthDialog],
   );
 
+    /**
+   * Send a password recovery email
+   */
+  const resetPassword = useCallback(
+    async (email: string) => {
+      try {
+        setAuthError(null);
+
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+
+        if (error) {
+          setAuthError(
+            "We couldn't send the password reset email. Please try again.",
+          );
+          return { success: false, error };
+        }
+
+        return { success: true };
+      } catch (err) {
+        setAuthError(
+          "We couldn't send the password reset email. Please try again.",
+        );
+        return { success: false, error: err };
+      }
+    },
+    [setAuthError],
+  );
+  /**
+ * Update password after a password recovery session
+ */
+const updatePassword = useCallback(
+  async (newPassword: string) => {
+    try {
+      setAuthError(null);
+
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        setAuthError("We couldn't update your password. Please try again.");
+        return { success: false, error };
+      }
+
+      return { success: true };
+    } catch (err) {
+      setAuthError("We couldn't update your password. Please try again.");
+      return { success: false, error: err };
+    }
+  },
+  [setAuthError],
+);
   /**
    * Sign out the current user
    * Per PRD 4.5: Ends session, removes protected data from UI
@@ -214,6 +268,8 @@ export const useSupabaseAuth = () => {
     // Actions
     signUp,
     signIn,
+    resetPassword,
+    updatePassword,
     signOut,
     updateProfile,
     openAuthDialog,

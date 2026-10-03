@@ -51,3 +51,5 @@ export const showAuthDialogAtom = atom<boolean>(false);
 
 // Pending room link to restore after auth (stores the hash)
 export const pendingRoomLinkAtom = atom<string | null>(null);
+// Whether the user arrived through a password recovery link
+export const passwordRecoveryAtom = atom<boolean>(false);

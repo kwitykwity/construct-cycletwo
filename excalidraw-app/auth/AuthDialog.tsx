@@ -3,11 +3,11 @@ import { useState, useCallback, useEffect } from "react";
 import { useAtomValue } from "../app-jotai";
 
 import { useSupabaseAuth } from "./useSupabaseAuth";
-import { authErrorAtom } from "./atoms";
+import { authErrorAtom, passwordRecoveryAtom } from "./atoms";
 
 import "./AuthDialog.scss";
 
-type AuthMode = "signIn" | "signUp";
+type AuthMode = "signIn" | "signUp" | "resetPassword";
 
 /**
  * Simple modal wrapper that doesn't depend on Excalidraw context
@@ -78,14 +78,54 @@ export const AuthDialog = () => {
   const [lastName, setLastName] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
-
+  const [resetEmailSent, setResetEmailSent] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordUpdated, setPasswordUpdated] = useState(false);
   const authError = useAtomValue(authErrorAtom);
-  const { signIn, signUp, closeAuthDialog } = useSupabaseAuth();
+  const passwordRecovery = useAtomValue(passwordRecoveryAtom);
+  const { signIn, signUp, signOut, resetPassword, updatePassword, openAuthDialog, closeAuthDialog } = useSupabaseAuth();
 
   const handleClose = useCallback(() => {
     closeAuthDialog();
   }, [closeAuthDialog]);
+  const handleResetPassword = useCallback(async () => {
+    if (!email.trim() || isSubmitting) {
+      return;
+    }
 
+    setIsSubmitting(true);
+
+    try {
+      const result = await resetPassword(email.trim());
+      if (result.success) {
+        setResetEmailSent(true);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [email, isSubmitting, resetPassword]);
+  const handleUpdatePassword = useCallback(async () => {
+  if (newPassword !== confirmPassword) {
+  return;
+ }  
+  if (newPassword.length < 6 || isSubmitting) {
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  try {
+    const result = await updatePassword(newPassword);
+    if (result.success) {
+  setPasswordUpdated(true);
+  await signOut();
+  openAuthDialog();
+}
+  } finally {
+    setIsSubmitting(false);
+  }
+}, [newPassword, confirmPassword, isSubmitting, updatePassword, signOut, openAuthDialog]);
   const handleSubmit = useCallback(async () => {
     if (isSubmitting) {
       return;
@@ -169,7 +209,76 @@ export const AuthDialog = () => {
       </SimpleModal>
     );
   }
+  if (resetEmailSent) {
+    return (
+      <SimpleModal title="Check your email" onClose={handleClose}>
+        <div className="auth-dialog">
+          <div className="auth-dialog__message">
+            <p>
+              If an account exists for <strong>{email}</strong>, we sent a
+              password reset link.
+            </p>
+            <p>
+              Please check your email and click the link to reset your password.
+            </p>
+          </div>
+          <button className="auth-dialog__button" onClick={handleClose}>
+            Close
+          </button>
+        </div>
+      </SimpleModal>
+    );
+  }
+  if (passwordRecovery && !passwordUpdated) {
+  const passwordsMatch =
+    newPassword.length > 0 && newPassword === confirmPassword;
 
+  return (
+    <SimpleModal title="Set new password" onClose={handleClose}>
+      <div className="auth-dialog">
+        <div className="auth-dialog__field">
+          <label htmlFor="new-password">New password</label>
+          <input
+            id="new-password"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Enter your new password"
+          />
+        </div>
+
+        <div className="auth-dialog__field">
+          <label htmlFor="confirm-password">Confirm password</label>
+          <input
+            id="confirm-password"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Enter your new password again"
+          />
+        </div>
+
+        {confirmPassword.length > 0 && !passwordsMatch && (
+          <div className="auth-dialog__error">
+            Passwords do not match.
+          </div>
+        )}
+
+        <button
+          className="auth-dialog__button"
+          onClick={handleUpdatePassword}
+          disabled={
+            newPassword.length < 6 ||
+            !passwordsMatch ||
+            isSubmitting
+          }
+        >
+          {isSubmitting ? "Updating..." : "Update Password"}
+        </button>
+      </div>
+    </SimpleModal>
+  );
+}
   return (
     <SimpleModal
       title={mode === "signIn" ? "Sign In" : "Create Account"}
@@ -239,7 +348,22 @@ export const AuthDialog = () => {
             }
           />
         </div>
-
+        {mode === "signIn" && !email.trim() && (
+  <div className="auth-dialog__message">
+    Enter your email above to reset your password.
+  </div>
+)}
+        {mode === "signIn" && (
+          <div className="auth-dialog__toggle">
+            <button
+              type="button"
+              onClick={handleResetPassword}
+              disabled={!email.trim() || isSubmitting}
+            >
+              Forgot password?
+            </button>
+          </div>
+        )}
         <button
           className="auth-dialog__button"
           onClick={handleSubmit}
