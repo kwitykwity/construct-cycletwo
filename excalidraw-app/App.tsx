@@ -1058,7 +1058,7 @@ const ExcalidrawWrapper = () => {
           collabAPI?.onPointerUpdate(payload);
 
           // Element Authorship: hit-test on hover for tooltip display
-          if (payload.button === "up" && excalidrawAPI) {
+          if (excalidrawAPI) {
             const elements = excalidrawAPI.getSceneElements();
             const px = payload.pointer.x;
             const py = payload.pointer.y;
